@@ -10,6 +10,9 @@ namespace Glimmerfall.Sim.Cli;
 /// </summary>
 public sealed class Args
 {
+    /// <summary>Булевы флаги никогда не берут значение: иначе `verify --json FILE` съедал бы путь к файлу.</summary>
+    private static readonly HashSet<string> BooleanFlags = new() { "json", "verbose" };
+
     private readonly Dictionary<string, List<string>> _values = new();
     private readonly HashSet<string> _used = new();
 
@@ -34,7 +37,7 @@ public sealed class Args
                 value = key.Substring(eq + 1);
                 key = key.Substring(0, eq);
             }
-            else if (i + 1 < list.Count && !list[i + 1].StartsWith("--", StringComparison.Ordinal))
+            else if (!BooleanFlags.Contains(key) && i + 1 < list.Count && !list[i + 1].StartsWith("--", StringComparison.Ordinal))
             {
                 value = list[++i];
             }

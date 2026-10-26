@@ -1,0 +1,12 @@
+# Контекст сборки validator/Dockerfile — корень репозитория; в образ нужны только sim/, sim.cli/ и пины.
+**/bin/
+**/obj/
+.git/
+.godot/
+build/
+game/
+docs/
+server/
+sim.tests/
+tools/
+.claude/

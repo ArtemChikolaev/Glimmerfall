@@ -79,4 +79,21 @@ public static class Rules
 
     /// <summary>Опыт до следующего уровня.</summary>
     public static int XpToNext(int level) => 10 + 5 * (level - 1);
+
+    /// <summary>
+    /// Очки забега для таблиц рекордов: убийства + 5000 за закрытый акт. Сервер не верит очкам клиента — их считает
+    /// валидатор этой же функцией после ре-симуляции реплея.
+    /// </summary>
+    public static int RunScore(World world)
+    {
+        int cleared = 0;
+        foreach (Core.ActStats act in world.Stats.Acts)
+        {
+            if (act.Cleared)
+            {
+                cleared++;
+            }
+        }
+        return world.Stats.TotalKills + 5000 * cleared;
+    }
 }

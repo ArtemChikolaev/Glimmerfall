@@ -93,3 +93,38 @@ jobs:
       - run: dotnet build game/Glimmerfall.csproj
       - run: '"$GODOT" --headless --path game --import'
       - run: '"$GODOT" --headless --path game --fixed-fps 60 -- --smoke-frames 240'
+
+  # Каркас сервера (G1.7): go vet и тесты, включая интеграцию с настоящим .NET-валидатором (тот же Sim.dll).
+  server:
+    name: Server (Go + validator)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: server/go.mod
+          cache: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - run: dotnet build ../sim.cli/Glimmerfall.Sim.Cli.csproj -c Release
+      - run: test -z "$(gofmt -l .)"
+      - run: go vet ./...
+      - run: go test ./...
+        env:
+          GLIMMERFALL_SIM: ${{ github.workspace }}/sim.cli/bin/Release/net10.0/glimmerfall-sim
+
+  # Валидатор в Docker: образ собирается и проверяет golden-реплей тем же Sim.dll.
+  validator:
+    name: Validator image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker build -f validator/Dockerfile -t glimmerfall-validator .
+      - run: docker run --rm -i glimmerfall-validator < sim.tests/golden/kiter-short-act.gfr | tee verdict.json
+      - run: grep -q '"ok":true' verdict.json

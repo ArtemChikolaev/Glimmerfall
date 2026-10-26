@@ -86,6 +86,23 @@ public class ReplayTests
         Assert.True(ReplayPlayer.Verify(Replay.Parse(replay.ToText())).Ok);
     }
 
+    /// <summary>Тот же вектор проверяет Go-сервер (server/internal/daily): сид дня одинаков в обоих языках.</summary>
+    [Fact]
+    public void DailyRulesAreCanonical()
+    {
+        Assert.Equal(4973729189407420658UL, DailyRules.Seed("2026-10-26"));
+        SimConfig config = DailyRules.Config("2026-10-26");
+        Assert.Equal(Scenario.Run, config.Scenario);
+        Assert.Equal(0, config.Tier);
+        Assert.Equal(default, config.Meta);
+        Assert.Empty(config.Overrides);
+        Assert.Equal(new[] { 0, 1, 2 }, config.Squad.OrderBy(id => id));
+        Assert.Equal(config.ComputeFingerprint(), DailyRules.Config("2026-10-26").ComputeFingerprint());
+        SimConfig easier = DailyRules.Config("2026-10-26");
+        easier.ApplyOverride("spawn.max=1");
+        Assert.NotEqual(config.ComputeFingerprint(), easier.ComputeFingerprint());
+    }
+
     [Fact]
     public void UnknownOverrideKeyFailsLoudly()
     {
