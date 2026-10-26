@@ -12,6 +12,17 @@ public enum AttackPattern : byte
     Nova = 2,
 }
 
+/// <summary>Фирменный приём ассиста (PRD §5): резервный герой выпрыгивает, бьёт и уходит.</summary>
+public enum AssistKind : byte
+{
+    /// <summary>Огненное кольцо вокруг отряда.</summary>
+    FireRing = 0,
+    /// <summary>Удар щитом конусом по направлению взгляда с отбросом рядовых.</summary>
+    ShieldBash = 1,
+    /// <summary>Цепная молния: ближайший враг, затем прыжки к следующим.</summary>
+    ChainLightning = 2,
+}
+
 /// <summary>Вид героя отряда. Единицы — в именах полей. Создаётся заново для каждого конфига (копия на забег).</summary>
 public sealed class HeroKind
 {
@@ -20,6 +31,7 @@ public sealed class HeroKind
     public int MaxHp;
     public Fix SpeedPxPerTick;
     public Fix RadiusPx;
+    public AssistKind Assist;
     public AttackPattern Pattern;
     public int AttackIntervalTicks;
     public int ProjectileCount;

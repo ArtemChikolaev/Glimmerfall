@@ -16,6 +16,7 @@ public sealed class ActStats
     public int HeroDeaths;
     public int Swaps;
     public int Dashes;
+    public int Assists;
     public int LevelAtEnd;
     public int PeakEnemies;
 }

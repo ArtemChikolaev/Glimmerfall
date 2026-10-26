@@ -15,6 +15,12 @@ public enum SimEventType : byte
     EnemyFired = 8,
     /// <summary>Атака активного героя: Kind — вид героя, Dir — направление на цель (у новы — первый луч).</summary>
     HeroAttack = 9,
+    /// <summary>Ассист: Kind — вид выпрыгнувшего героя, Dir — взгляд отряда, Amount — радиус приёма.</summary>
+    Assist = 10,
+    /// <summary>Звено цепной молнии: из (X, Y) на Dir (вектор до цели); Kind — вид героя.</summary>
+    ChainLink = 11,
+    /// <summary>Удар входящего героя при смене: Kind — вид героя, Amount — радиус.</summary>
+    SwapStrike = 12,
 }
 
 /// <summary>

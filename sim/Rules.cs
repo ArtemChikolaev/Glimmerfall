@@ -25,6 +25,13 @@ public static class Rules
     public const int MendHealPercent = 35;
     public const int VigorHpPerLevel = 20;
 
+    /// <summary>Ассист (PRD §5): откат общий на отряд; урон — доля урона атаки выпрыгнувшего героя.</summary>
+    public const int AssistCooldownTicks = 8 * 60;
+    public const int AssistDamagePercent = 300;
+    /// <summary>Удар входящего героя при смене — по кругу отброса.</summary>
+    public const int SwapStrikeDamagePercent = 200;
+    public const int ChainLightningTargets = 8;
+
     /// <summary>
     /// Преследователь встаёт в ChaseStopPx от касания с героем, а бьёт касанием в пределах ContactReachPx — досягаемость
     /// обязана быть больше остановки: иначе одиночный враг стоял вплотную и не наносил урона (находка ревью 2026-10-26).
@@ -37,6 +44,26 @@ public static class Rules
     public static readonly Fix GemMagnetSpeedPxPerTick = Fix.PerSecond(280);
     public static readonly Fix ShotRadiusPx = Fix.FromInt(4);
     public static readonly Fix MaxSeparationPushPx = Fix.Milli(1500);
+    public static readonly Fix FireRingRadiusPx = Fix.FromInt(96);
+    public static readonly Fix ShieldBashRadiusPx = Fix.FromInt(120);
+    public static readonly Fix ShieldBashPushPx = Fix.FromInt(56);
+    public static readonly Fix ChainFirstRangePx = Fix.FromInt(220);
+    public static readonly Fix ChainHopPx = Fix.FromInt(130);
+
+    /// <summary>Урон приёма ассиста — от урона атаки героя с «Мощью» и метой.</summary>
+    public static int AssistDamage(HeroKind kind, int mightLevel, in MetaLoadout meta) =>
+        Percent(HeroDamage(kind, mightLevel, meta), AssistDamagePercent);
+
+    public static int SwapStrikeDamage(HeroKind kind, int mightLevel, in MetaLoadout meta) =>
+        Percent(HeroDamage(kind, mightLevel, meta), SwapStrikeDamagePercent);
+
+    /// <summary>Радиус приёма ассиста — для события и подсказки.</summary>
+    public static Fix AssistRadius(AssistKind assist) => assist switch
+    {
+        AssistKind.FireRing => FireRingRadiusPx,
+        AssistKind.ShieldBash => ShieldBashRadiusPx,
+        _ => ChainFirstRangePx,
+    };
 
     public static int Percent(int value, int percent) => (int)((long)value * percent / 100);
 

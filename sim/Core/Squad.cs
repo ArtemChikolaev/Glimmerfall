@@ -31,6 +31,7 @@ public sealed class Squad
     public Fix DashDirX;
     public Fix DashDirY;
     public int SwapCooldown;
+    public int AssistCooldown;
     public int InvulnerableTicks;
     /// <summary>Поворот кольца «Новы» и спирали спайка орды, единицы угла.</summary>
     public int SpinAngle;
@@ -71,6 +72,7 @@ public sealed class Squad
         hasher.Add(DashDirX.Raw);
         hasher.Add(DashDirY.Raw);
         hasher.Add(SwapCooldown);
+        hasher.Add(AssistCooldown);
         hasher.Add(InvulnerableTicks);
         hasher.Add(SpinAngle);
     }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Glimmerfall.Sim.Content;
 using Glimmerfall.Sim.Core;
 using Glimmerfall.Sim.Determinism;
@@ -11,6 +12,9 @@ public sealed partial class World
     private static readonly Fix ArenaMax = Fix.FromInt(SimConstants.ArenaSize);
     private const int GoldenAngle = 25033; // ≈137,5° в единицах угла: равномерная спираль без повторов
 
+    /// <summary>Задетые цепной молнией за один ассист (до восьми слотов) — рабочий буфер, не состояние.</summary>
+    private readonly List<int> _chainHits = new(Rules.ChainLightningTargets);
+
     private void UpdateSquad(in InputFrame input)
     {
         Squad s = Squad;
@@ -21,6 +25,10 @@ public sealed partial class World
         if (s.SwapCooldown > 0)
         {
             s.SwapCooldown--;
+        }
+        if (s.AssistCooldown > 0)
+        {
+            s.AssistCooldown--;
         }
         if (s.InvulnerableTicks > 0)
         {
@@ -36,6 +44,14 @@ public sealed partial class World
             if (next >= 0)
             {
                 SwapTo(next, forced: false);
+            }
+        }
+        if ((input.Buttons & InputButtons.Assist) != 0 && s.AssistCooldown == 0)
+        {
+            int helper = NextAliveReserve();
+            if (helper >= 0)
+            {
+                Assist(helper);
             }
         }
 
@@ -122,8 +138,141 @@ public sealed partial class World
         {
             Stats.Acts[ActIndex].Swaps++;
         }
-        Knockback(Rules.KnockbackRadiusPx, Rules.KnockbackDistancePx);
         Emit(SimEventType.Swap, s.X, s.Y, s.Kind[next], forced ? 1 : 0);
+        // вход героя (PRD §5): удар по кругу, затем отброс рядовых
+        HeroKind kind = Config.HeroKinds[s.Kind[next]];
+        int damage = Rules.SwapStrikeDamage(kind, BlessingLevels[(int)Blessing.Might], Config.Meta);
+        Emit(SimEventType.SwapStrike, s.X, s.Y, kind.Id, Rules.KnockbackRadiusPx.FloorToInt());
+        StrikeCircle(Rules.KnockbackRadiusPx, damage, kind.Id);
+        Knockback(Rules.KnockbackRadiusPx, Rules.KnockbackDistancePx);
+    }
+
+    /// <summary>
+    /// Ассист (PRD §5): резервный герой выпрыгивает, бьёт фирменным приёмом и уходит; активный остаётся на поле.
+    /// Откат общий на отряд. Перебор врагов — по слотам: порядок детерминирован.
+    /// </summary>
+    private void Assist(int helper)
+    {
+        Squad s = Squad;
+        HeroKind kind = Config.HeroKinds[s.Kind[helper]];
+        int damage = Rules.AssistDamage(kind, BlessingLevels[(int)Blessing.Might], Config.Meta);
+        s.AssistCooldown = Rules.AssistCooldownTicks;
+        Stats.Acts[ActIndex].Assists++;
+        Emit(SimEventType.Assist, s.X, s.Y, kind.Id, Rules.AssistRadius(kind.Assist).FloorToInt(), s.FacingX, s.FacingY);
+        switch (kind.Assist)
+        {
+            case AssistKind.FireRing:
+                StrikeCircle(Rules.FireRingRadiusPx, damage, kind.Id);
+                break;
+            case AssistKind.ShieldBash:
+                ShieldBash(damage, kind.Id);
+                break;
+            case AssistKind.ChainLightning:
+                ChainLightning(damage, kind.Id);
+                break;
+        }
+    }
+
+    /// <summary>Урон всем врагам в круге вокруг отряда; направление удара — от отряда к врагу.</summary>
+    private void StrikeCircle(Fix radius, int damage, int source)
+    {
+        EnemyPool e = Enemies;
+        long r2 = radius.Raw * radius.Raw;
+        for (int i = 0; i < e.HighWater; i++)
+        {
+            if (!e.Alive[i])
+            {
+                continue;
+            }
+            long dx = e.X[i].Raw - Squad.X.Raw;
+            long dy = e.Y[i].Raw - Squad.Y.Raw;
+            if (dx * dx + dy * dy > r2)
+            {
+                continue;
+            }
+            DamageEnemy(i, damage, Fix.FromRaw(dx), Fix.FromRaw(dy), false, source);
+        }
+    }
+
+    /// <summary>Удар щитом: конус ±60° по взгляду отряда, урон и отброс рядовых (элиты и босс стоят).</summary>
+    private void ShieldBash(int damage, int source)
+    {
+        EnemyPool e = Enemies;
+        Squad s = Squad;
+        long r = Rules.ShieldBashRadiusPx.Raw;
+        for (int i = 0; i < e.HighWater; i++)
+        {
+            if (!e.Alive[i])
+            {
+                continue;
+            }
+            long dx = e.X[i].Raw - s.X.Raw;
+            long dy = e.Y[i].Raw - s.Y.Raw;
+            long d2 = dx * dx + dy * dy;
+            if (d2 > r * r)
+            {
+                continue;
+            }
+            long distance = (long)FixMath.ISqrt((ulong)d2);
+            long along = (dx * s.FacingX.Raw + dy * s.FacingY.Raw) >> Fix.FractionBits;
+            if (2 * along < distance)
+            {
+                continue;
+            }
+            DamageEnemy(i, damage, Fix.FromRaw(dx), Fix.FromRaw(dy), false, source);
+            if (!e.Alive[i] || _heavyKind[e.Kind[i]])
+            {
+                continue;
+            }
+            int angle = FixMath.Atan2(dy, dx);
+            Fix radiusE = e.Radius[i];
+            e.X[i] = Fix.Clamp(e.X[i] + FixMath.Cos(angle) * Rules.ShieldBashPushPx, radiusE, ArenaMax - radiusE);
+            e.Y[i] = Fix.Clamp(e.Y[i] + FixMath.Sin(angle) * Rules.ShieldBashPushPx, radiusE, ArenaMax - radiusE);
+        }
+    }
+
+    /// <summary>
+    /// Цепная молния: ближайший враг в радиусе первого прыжка, затем до <see cref="Rules.ChainLightningTargets"/> прыжков
+    /// к ближайшему ещё не задетому; равные расстояния — меньший слот.
+    /// </summary>
+    private void ChainLightning(int damage, int source)
+    {
+        EnemyPool e = Enemies;
+        _chainHits.Clear();
+        long fromX = Squad.X.Raw;
+        long fromY = Squad.Y.Raw;
+        for (int hop = 0; hop < Rules.ChainLightningTargets; hop++)
+        {
+            long reach = (hop == 0 ? Rules.ChainFirstRangePx : Rules.ChainHopPx).Raw;
+            long best = reach * reach + 1;
+            int target = -1;
+            for (int i = 0; i < e.HighWater; i++)
+            {
+                if (!e.Alive[i] || _chainHits.Contains(i))
+                {
+                    continue;
+                }
+                long dx = e.X[i].Raw - fromX;
+                long dy = e.Y[i].Raw - fromY;
+                long d2 = dx * dx + dy * dy;
+                if (d2 < best)
+                {
+                    best = d2;
+                    target = i;
+                }
+            }
+            if (target < 0)
+            {
+                break;
+            }
+            long tx = e.X[target].Raw;
+            long ty = e.Y[target].Raw;
+            Emit(SimEventType.ChainLink, Fix.FromRaw(fromX), Fix.FromRaw(fromY), source, hop, Fix.FromRaw(tx - fromX), Fix.FromRaw(ty - fromY));
+            _chainHits.Add(target);
+            DamageEnemy(target, damage, Fix.FromRaw(tx - fromX), Fix.FromRaw(ty - fromY), false, source);
+            fromX = tx;
+            fromY = ty;
+        }
     }
 
     /// <summary>Отбрасывает рядовых врагов из круга вокруг отряда (вход героя). Элиты и босс стоят.</summary>

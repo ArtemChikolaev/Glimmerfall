@@ -8,6 +8,8 @@ public enum InputButtons : byte
     None = 0,
     Dash = 1,
     Swap = 2,
+    /// <summary>Ассист: следующий живой резервный герой выпрыгивает, бьёт фирменным приёмом и уходит (PRD §5).</summary>
+    Assist = 4,
 }
 
 /// <summary>

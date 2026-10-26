@@ -17,5 +17,6 @@ public static class SimConstants
 /// <summary>Версия правил и коэффициентов. Изменил правило или число — бампни: несовместимый реплей отказывается явно.</summary>
 public static class SimVersion
 {
-    public const string Balance = "0.1.1-spike";
+    /// <summary>0.2.0 — ассист резервного героя и удар входящего при смене (PRD §5).</summary>
+    public const string Balance = "0.2.0-squad";
 }

@@ -195,6 +195,11 @@ public sealed class KiterPolicy : IBotPolicy
         {
             buttons |= InputButtons.Dash;
         }
+        // ассист — когда рядом толпа: приём резервного героя бьёт по площади
+        if (reserve >= 0 && s.AssistCooldown == 0 && danger >= 6)
+        {
+            buttons |= InputButtons.Assist;
+        }
 
         if (fx == 0 && fy == 0)
         {
