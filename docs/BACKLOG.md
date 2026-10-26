@@ -19,16 +19,16 @@
 ## Этап 1 — Технические спайки (2–4 недели, параллельно)
 Выход: кадр < 8 мс на Steam Deck в спайке орды; реплеи бит-в-бит на трёх ОС; бот проходит акт headless; мобильная сборка измерена.
 
-Отчёты спайков — [docs/spikes/](spikes/README.md). Push и прогон CI на GitHub — по поручению владельца; до него «три ОС» проверены только описанием матрицы.
+Отчёты спайков — [docs/spikes/](spikes/README.md). CI на GitHub зелёный на `a3c21b3` (прогон [40342198845](https://github.com/ArtemChikolaev/Glimmerfall/actions/runs/40342198845), 2026-10-26): все 8 джобов, включая сверку дайджестов трёх ОС и Docker-образ валидатора.
 
 - ✅ G1.0 Окружение (2026-10-26): .NET SDK 10.0.403, Godot 4.7.2 .NET и шаблоны экспорта, gh — со сверкой SHA-512; пины `global.json`, `.godot-version`, `Godot.NET.Sdk/4.7.2` — [отчёт](spikes/G1.0-environment.md). Осталось: Aseprite к этапу 2.
-- ✅ G1.1 Скелет решения (2026-10-26): `sim/`, `sim.tests/`, `sim.cli/`, `game/`, `server/`, `validator/`; `dotnet build Glimmerfall.slnx` и тесты зелёные, headless-импорт и смоук Godot проходят локально; джобы CI описаны — [отчёт](spikes/G1.1-skeleton.md).
-- 🟨 G1.2 Детерминизм: Q48.16, табличная тригонометрия, PCG32 с потоками, xxHash64-дайджест, реплей с отпечатком данных, тест-запрет по IL, 4 golden-реплея; бит-в-бит между Debug/Release и CLI/Godot — [отчёт](spikes/G1.2-determinism.md). Осталось: прогон матрицы Windows x64 / Linux x64 / macOS arm64 на GitHub.
+- ✅ G1.1 Скелет решения (2026-10-26): `sim/`, `sim.tests/`, `sim.cli/`, `game/`, `server/`, `validator/`, `Makefile`; CI на GitHub зелёный (сборка, тесты, headless-импорт и смоук Godot, сервер, образ) — [отчёт](spikes/G1.1-skeleton.md).
+- ✅ G1.2 Детерминизм (2026-10-26): Q48.16, табличная тригонометрия, PCG32 с потоками, xxHash64-дайджест, реплей с отпечатком данных, тест-запрет по IL, 4 golden-реплея; бит-в-бит между Debug/Release, CLI/Godot и **Windows x64 / Linux x64 / macOS arm64** (джоб CI «Digests match across OS») — [отчёт](spikes/G1.2-determinism.md).
 - 🟨 G1.3 Орда: 5 тыс. врагов и 2 тыс. снарядов — тик 0,8 мс (CLI), кадр 4,7 мс и 0,06% кадров > 8 мс на M1 Max, 10 вызовов отрисовки — [отчёт](spikes/G1.3-horde.md). Осталось: замер на Steam Deck (сборка `build/glimmerfall-steamdeck-spike.zip`, инструкция в отчёте).
 - 🟨 G1.4 Мобайл: APK (102 МБ, Android требует net9.0) и Xcode-проект с NativeAOT собираются, сборки с тегом `bench` сами меряют кадр — [отчёт](spikes/G1.4-mobile.md). Осталось: замеры владельца на среднем Android и iPhone и решение по [ADR 0002](adr/0002-tech-stack.md).
 - ✅ G1.5 Бот-харнесс (2026-10-26): `glimmerfall-sim bot` (кайтер, AFK, AFK со N-й секунды; статистика по актам; `--set`, `--trace`, `--dump`) и `career`; сторожа модалок; AFK гибнет на 0:47 (p50), AFK со 2-й минуты — за 10–13 с, кайтер проходит акт 1 в 97% — [отчёт](spikes/G1.5-bot-harness.md).
 - ⬜ G1.6 Steam: GodotSteam или Steamworks.NET, глифы Steam Input, Steam Cloud, trusted-лидерборд через Go-сервер, реплей как UGC — [план](spikes/G1.6-steam.md); блокер — аккаунт Steamworks (G0.6).
-- 🟨 G1.7 Сервер: Go-каркас (дейлик, приём реплея, таблица) и валидатор `glimmerfall-sim verify --json --daily` — ре-симуляция и сверка дайджестов, сквозной прогон и интеграционный тест с настоящим валидатором проходят — [отчёт](spikes/G1.7-server.md). Осталось: сборка Docker-образа (джоб CI `validator`), Postgres, вход через Steam.
+- ✅ G1.7 Сервер (2026-10-26): Go-каркас (дейлик, приём реплея, таблица) и валидатор `glimmerfall-sim verify --json --daily` в Docker — ре-симуляция и сверка дайджестов; сквозной прогон, интеграционный тест с настоящим валидатором и образ в CI проходят — [отчёт](spikes/G1.7-server.md). Дальше (вне каркаса): Postgres, вход через Steam, trusted-запись в Steam (G1.6).
 
 ## Этап 2 — Стиль и арт-срез (2–4 недели)
 Выход: измерены часы на анимацию, метрика мерцания в норме, читаемость при 300+ врагах, выбрана сетка спрайтов.
