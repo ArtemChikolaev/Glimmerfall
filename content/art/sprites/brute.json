@@ -1,0 +1,112 @@
+{
+ "$schema": "../../schema/sprite-sheet.schema.json",
+ "id": "brute",
+ "image": "brute.png",
+ "grid": [
+  640,
+  360
+ ],
+ "cell": [
+  71,
+  93
+ ],
+ "columns": 10,
+ "anchor": [
+  33,
+  74
+ ],
+ "palette": "glimmerfall-master@0.1-draft",
+ "directions": {
+  "rendered": [
+   "S",
+   "E",
+   "N"
+  ],
+  "mirror": {
+   "W": "E"
+  }
+ },
+ "clips": {
+  "run": {
+   "row": 0,
+   "frames": 8,
+   "fps": 10,
+   "loop": true,
+   "dirs": [
+    "S",
+    "E",
+    "N"
+   ]
+  },
+  "attack": {
+   "row": 3,
+   "frames": 9,
+   "fps": 10,
+   "loop": false,
+   "dirs": [
+    "S",
+    "E",
+    "N"
+   ],
+   "phases": {
+    "windup": [
+     0,
+     4
+    ],
+    "active": [
+     4,
+     6
+    ],
+    "recovery": [
+     6,
+     9
+    ]
+   }
+  },
+  "hit": {
+   "row": 6,
+   "frames": 3,
+   "fps": 10,
+   "loop": false,
+   "dirs": [
+    "S",
+    "E",
+    "N"
+   ]
+  },
+  "death": {
+   "row": 9,
+   "frames": 10,
+   "fps": 10,
+   "loop": false,
+   "dirs": [
+    "S"
+   ]
+  }
+ },
+ "source": {
+  "kind": "procedural",
+  "model": "brute",
+  "note": "тестовая элита: тот же риг, массивные пропорции, костяная броня",
+  "scale": 1.0,
+  "target_px": 60.0,
+  "supersample": 4,
+  "pixels_per_meter": 41.1677,
+  "renderer": "Blender 5.2.1 LTS Cycles",
+  "pipeline": 1,
+  "style": {
+   "key_light": [
+    -0.5512693810472418,
+    0.6515001776012856,
+    0.5212001420810285
+   ],
+   "shadow_below": 0.3,
+   "highlight_above": 0.82,
+   "glow_core_above": 0.55,
+   "coverage": 0.5,
+   "line_depth_m": 0.1,
+   "despeckle_px": 2,
+   "outline": true
+  }
+ }
+}

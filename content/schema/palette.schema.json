@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:glimmerfall:schema:palette",
+  "title": "Мастер-палитра Glimmerfall",
+  "description": "Фиксированная палитра (ADR 0003 п. 5): уникальные цвета, рампы тёмный → светлый со ссылками на цвета, роли и план светлоты в OKLab L.",
+  "type": "object",
+  "required": ["name", "version", "status", "colors", "ramps", "roles", "lightness"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {"type": "string"},
+    "name": {"type": "string"},
+    "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+(-[a-z]+)?$"},
+    "status": {"type": "string"},
+    "colors": {
+      "description": "id → #rrggbb; порядок задаёт индексы в индексированных PNG (0 — прозрачный, цвета с 1).",
+      "type": "object",
+      "minProperties": 48,
+      "maxProperties": 64,
+      "propertyNames": {"pattern": "^[a-z]+[0-9]*$"},
+      "additionalProperties": {"type": "string", "pattern": "^#[0-9a-f]{6}$"}
+    },
+    "ramps": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"pattern": "^[a-z]+$"},
+      "additionalProperties": {
+        "type": "object",
+        "required": ["use", "tones", "note"],
+        "additionalProperties": false,
+        "properties": {
+          "use": {"enum": ["world", "material", "vfx", "telegraph"]},
+          "tones": {"type": "array", "minItems": 2, "maxItems": 6, "items": {"type": "string"}},
+          "note": {"type": "string"}
+        }
+      }
+    },
+    "roles": {
+      "type": "object",
+      "required": ["outline", "flash"],
+      "additionalProperties": {"type": "string"}
+    },
+    "lightness": {
+      "description": "Допустимая OKLab-светлота тонов по назначению рампы: [мин, макс].",
+      "type": "object",
+      "required": ["world", "material", "vfx", "telegraph"],
+      "additionalProperties": false,
+      "properties": {
+        "world": {"$ref": "#/$defs/range"},
+        "material": {"$ref": "#/$defs/range"},
+        "vfx": {"$ref": "#/$defs/range"},
+        "telegraph": {"$ref": "#/$defs/range"}
+      }
+    }
+  },
+  "$defs": {
+    "range": {"type": "array", "items": {"type": "number", "minimum": 0, "maximum": 1}, "minItems": 2, "maxItems": 2}
+  }
+}

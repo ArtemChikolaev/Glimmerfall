@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:glimmerfall:schema:sprite-sheet",
+  "title": "Метаданные спрайт-листа Glimmerfall",
+  "description": "Лист — индексированный PNG в game/art/sprites в мастер-палитре; ряд на пару (клип, направление), столбец на кадр. Пишет конвейер tools/sprites, руками не правится.",
+  "type": "object",
+  "required": ["id", "image", "grid", "cell", "columns", "anchor", "palette", "directions", "clips", "source"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {"type": "string"},
+    "id": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+    "image": {"type": "string", "pattern": "^[a-z][a-z0-9_]*\\.png$"},
+    "grid": {"description": "внутреннее разрешение, под которое отрисован лист", "$ref": "#/$defs/pair"},
+    "cell": {"description": "ширина и высота кадра, px", "$ref": "#/$defs/pair"},
+    "columns": {"type": "integer", "minimum": 1},
+    "anchor": {"description": "точка опоры (проекция начала координат модели под ступнями) внутри кадра, px", "$ref": "#/$defs/pair"},
+    "palette": {"type": "string"},
+    "directions": {
+      "type": "object",
+      "required": ["rendered", "mirror"],
+      "additionalProperties": false,
+      "properties": {
+        "rendered": {"type": "array", "items": {"$ref": "#/$defs/direction"}, "minItems": 1, "uniqueItems": true},
+        "mirror": {"description": "направление → отрисованное, которое отражается по горизонтали", "type": "object",
+                   "propertyNames": {"$ref": "#/$defs/direction"}, "additionalProperties": {"$ref": "#/$defs/direction"}}
+      }
+    },
+    "clips": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["row", "frames", "fps", "loop", "dirs"],
+        "additionalProperties": false,
+        "properties": {
+          "row": {"type": "integer", "minimum": 0},
+          "frames": {"type": "integer", "minimum": 1},
+          "fps": {"type": "number", "exclusiveMinimum": 0},
+          "loop": {"type": "boolean"},
+          "dirs": {"type": "array", "items": {"$ref": "#/$defs/direction"}, "minItems": 1, "uniqueItems": true},
+          "phases": {
+            "description": "окна удара в кадрах [начало, конец): из них сим читает тайминги",
+            "type": "object",
+            "required": ["windup", "active", "recovery"],
+            "additionalProperties": false,
+            "properties": {
+              "windup": {"$ref": "#/$defs/pair"},
+              "active": {"$ref": "#/$defs/pair"},
+              "recovery": {"$ref": "#/$defs/pair"}
+            }
+          }
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["kind", "model", "scale", "renderer", "pipeline"],
+      "properties": {
+        "kind": {"enum": ["procedural", "blender", "hand"]},
+        "model": {"type": "string"},
+        "scale": {"type": "number"},
+        "renderer": {"type": "string"},
+        "pipeline": {"type": "integer"}
+      }
+    }
+  },
+  "$defs": {
+    "pair": {"type": "array", "items": {"type": "integer", "minimum": 0}, "minItems": 2, "maxItems": 2},
+    "direction": {"enum": ["S", "SE", "E", "NE", "N", "NW", "W", "SW"]}
+  }
+}

@@ -1,0 +1,38 @@
+{
+ "pipeline": 1,
+ "sources": {
+  "tools/sprites/blender/models.py": "2309f758f641ebd56d6276ba74b14b311d74125025d4c4b9c11d05660d3a484b",
+  "tools/sprites/blender/render.py": "9ed388d812e8cbd66f644da3f50f9f55f138e9782067388d6ef2b3b625a4f57e",
+  "tools/sprites/glimmer_sprites/build.py": "be5125b734227d7c22b2a9d81f9faee382a8588188deac1d6de24f8e0ced6b29",
+  "tools/sprites/glimmer_sprites/sheet.py": "d4345d9830c8c21d642ee5e94a1757bd7c3308786605d1634462525e96d0768f",
+  "tools/sprites/glimmer_sprites/palette.py": "bd9a84bcebf16b48c2363e5d8ebb73b2e8bbd6a448c536b3972c43da0be5e718",
+  "tools/sprites/glimmer_sprites/color.py": "d9d9d0073414d358211f7aefa35495b4d9102aa6f5b4dab9b1742d0a8f24caa5",
+  "content/art/palette.json": "3a477c898ee96486c1514e92399a831bf2c13c58b5746916a406cbd64a56c363"
+ },
+ "sheets": {
+  "brute": {
+   "meta_sha256": "5c1d30764567494ce6a15c8f2cf7806df1c0bfaf406a4f9a6d0d5fc7b136eddb",
+   "image_sha256": "ff5f89b0c02872c79ebfdbd24432ea38927a115a62d7cce7e0cd19ecdcea45dc"
+  },
+  "brute_960": {
+   "meta_sha256": "42a9af20371d0533ca133fab12b207cdccdd030d67ec24929f18213d922fb28b",
+   "image_sha256": "dc38b91ba3553e17fe747f49cc74a1338f2877436c533d96bad7e4b287488a4c"
+  },
+  "ghoul": {
+   "meta_sha256": "2be307795781b350c3f298c17b61a6cdfb5cc1bc330be4072d3cfb1b85e9d58b",
+   "image_sha256": "5a8515af8b1117efeefcf570a9dc27b8120816eecd651c109404f9497e5841e7"
+  },
+  "ghoul_960": {
+   "meta_sha256": "4e934fde66f1b3fa04784265c37b3e3e2048fd07e5b1e583fdbca237a70a1eda",
+   "image_sha256": "3fac82a0b55e5346033f7bdfe2f650ce93aef38fb89150b05dd9ef38b66633ea"
+  },
+  "lamplighter": {
+   "meta_sha256": "0aaf9a29d3bf18386cda4f758799baba48d3b1467f4afe44179afc24e243ec12",
+   "image_sha256": "69c63137da7fa3f4ea0f14eb234dfaf2ffe0b849a6058ddc38bb4fbbfc2be717"
+  },
+  "lamplighter_960": {
+   "meta_sha256": "703ce50245dd894b5621f79746b7cfc5fe6472e41570ad6f1b8578c105066e44",
+   "image_sha256": "eb419b3ea3faf5a55c139f960ee11977f1bba639b5cea9550f2d2a1ba86eba63"
+  }
+ }
+}

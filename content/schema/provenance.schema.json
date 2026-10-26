@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:glimmerfall:schema:provenance",
+  "title": "Реестр происхождения ассетов Glimmerfall",
+  "description": "Каждый файл ассета в game/ (ADR 0003 п. 8, CLAUDE.md «IP и ассеты»): откуда он, кто автор, на каких правах. Помеченное ai или placeholder в релизную сборку не попадает.",
+  "type": "object",
+  "required": ["assets"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {"type": "string"},
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "kind", "source", "author", "license", "date", "ai", "placeholder"],
+        "additionalProperties": false,
+        "properties": {
+          "path": {"type": "string", "pattern": "^game/"},
+          "kind": {"enum": ["sprite-sheet", "icon", "texture", "tileset", "vfx", "ui", "font", "audio", "music", "model"]},
+          "source": {"type": "string", "minLength": 1},
+          "author": {"type": "string", "minLength": 1},
+          "license": {"type": "string", "minLength": 1},
+          "date": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
+          "ai": {"description": "к созданию причастен ИИ (генеративная модель или ИИ-агент, нарисовавший ассет кодом)", "type": "boolean"},
+          "placeholder": {"description": "временная заглушка", "type": "boolean"},
+          "note": {"type": "string"}
+        }
+      }
+    }
+  }
+}

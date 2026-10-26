@@ -1,0 +1,64 @@
+GIMP Palette
+Name: glimmerfall-master 0.1-draft
+Columns: 8
+#
+  7   4  12	ink
+ 16  12  29	gloom1
+ 24  22  44	gloom2
+ 33  35  59	gloom3
+ 24  25  31	stone1
+ 35  38  46	stone2
+ 46  53  61	stone3
+ 60  69  77	stone4
+ 35  18  13	earth1
+ 54  32  21	earth2
+ 74  50  31	earth3
+ 20  39  24	moss1
+ 44  59  32	moss2
+ 61  14  27	crimson1
+102  20  35	crimson2
+149  40  42	crimson3
+191  79  54	crimson4
+ 48  54 100	indigo1
+ 63  85 141	indigo2
+ 86 124 175	indigo3
+ 87  54  47	skin1
+136  88  70	skin2
+180 131  96	skin3
+213 176 137	skin4
+126  88  35	brass1
+173 138  53	brass2
+219 199 117	brass3
+ 80  89  99	steel1
+127 139 148	steel2
+197 208 213	steel3
+ 83  72  59	bone1
+127 115  94	bone2
+174 164 138	bone3
+221 216 192	bone4
+ 73  85  57	rot1
+116 120  82	rot2
+158 155 113	rot3
+168  38  15	fire1
+215  91   0	fire2
+249 144   0	fire3
+255 204  95	fire4
+255 245 187	fire5
+107  48 175	lightning1
+148 106 222	lightning2
+195 176 253	lightning3
+238 236 255	lightning4
+ 38 103 158	frost1
+ 47 158 207	frost2
+123 211 233	frost3
+209 247 252	frost4
+ 34 125  50	poison1
+ 81 170  60	poison2
+145 213  78	poison3
+218 245 153	poison4
+222 176  66	radiance1
+243 222 144	radiance2
+253 250 219	radiance3
+199  18 127	telegraph1
+249  93 162	telegraph2
+255 255 255	white

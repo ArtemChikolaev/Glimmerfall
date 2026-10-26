@@ -1,0 +1,82 @@
+{
+ "$schema": "../schema/provenance.schema.json",
+ "assets": [
+  {
+   "path": "game/art/sprites/brute.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «brute» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-26",
+   "ai": true,
+   "placeholder": true,
+   "note": "тестовый манекен G2.3 для проверки конвейера и сетки, не арт"
+  },
+  {
+   "path": "game/art/sprites/brute_960.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «brute» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-26",
+   "ai": true,
+   "placeholder": true,
+   "note": "тестовый манекен G2.3 для проверки конвейера и сетки, не арт"
+  },
+  {
+   "path": "game/art/sprites/ghoul.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «ghoul» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-26",
+   "ai": true,
+   "placeholder": true,
+   "note": "тестовый манекен G2.3 для проверки конвейера и сетки, не арт"
+  },
+  {
+   "path": "game/art/sprites/ghoul_960.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «ghoul» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-26",
+   "ai": true,
+   "placeholder": true,
+   "note": "тестовый манекен G2.3 для проверки конвейера и сетки, не арт"
+  },
+  {
+   "path": "game/art/sprites/lamplighter.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «lamplighter» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-26",
+   "ai": true,
+   "placeholder": true,
+   "note": "тестовый манекен G2.3 для проверки конвейера и сетки, не арт"
+  },
+  {
+   "path": "game/art/sprites/lamplighter_960.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «lamplighter» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-26",
+   "ai": true,
+   "placeholder": true,
+   "note": "тестовый манекен G2.3 для проверки конвейера и сетки, не арт"
+  },
+  {
+   "path": "game/icon.svg",
+   "kind": "icon",
+   "source": "SVG, написанный кодом для экспорта под iOS в спайке G1.4",
+   "author": "ИИ-агент (Claude Code) в сессии владельца",
+   "license": "собственность проекта",
+   "date": "2026-10-26",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка иконки; финальную рисует художник"
+  }
+ ]
+}

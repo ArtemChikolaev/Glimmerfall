@@ -1,0 +1,112 @@
+{
+ "$schema": "../../schema/sprite-sheet.schema.json",
+ "id": "ghoul_960",
+ "image": "ghoul_960.png",
+ "grid": [
+  960,
+  540
+ ],
+ "cell": [
+  60,
+  81
+ ],
+ "columns": 10,
+ "anchor": [
+  29,
+  63
+ ],
+ "palette": "glimmerfall-master@0.1-draft",
+ "directions": {
+  "rendered": [
+   "S",
+   "E",
+   "N"
+  ],
+  "mirror": {
+   "W": "E"
+  }
+ },
+ "clips": {
+  "run": {
+   "row": 0,
+   "frames": 8,
+   "fps": 12,
+   "loop": true,
+   "dirs": [
+    "S",
+    "E",
+    "N"
+   ]
+  },
+  "attack": {
+   "row": 3,
+   "frames": 7,
+   "fps": 12,
+   "loop": false,
+   "dirs": [
+    "S",
+    "E",
+    "N"
+   ],
+   "phases": {
+    "windup": [
+     0,
+     3
+    ],
+    "active": [
+     3,
+     4
+    ],
+    "recovery": [
+     4,
+     7
+    ]
+   }
+  },
+  "hit": {
+   "row": 6,
+   "frames": 3,
+   "fps": 12,
+   "loop": false,
+   "dirs": [
+    "S",
+    "E",
+    "N"
+   ]
+  },
+  "death": {
+   "row": 9,
+   "frames": 10,
+   "fps": 12,
+   "loop": false,
+   "dirs": [
+    "S"
+   ]
+  }
+ },
+ "source": {
+  "kind": "procedural",
+  "model": "ghoul",
+  "note": "тестовый рядовой враг: сутулый, когти, без оружия",
+  "scale": 1.5,
+  "target_px": 45.0,
+  "supersample": 4,
+  "pixels_per_meter": 45.0357,
+  "renderer": "Blender 5.2.1 LTS Cycles",
+  "pipeline": 1,
+  "style": {
+   "key_light": [
+    -0.5512693810472418,
+    0.6515001776012856,
+    0.5212001420810285
+   ],
+   "shadow_below": 0.3,
+   "highlight_above": 0.82,
+   "glow_core_above": 0.55,
+   "coverage": 0.5,
+   "line_depth_m": 0.1,
+   "despeckle_px": 2,
+   "outline": true
+  }
+ }
+}

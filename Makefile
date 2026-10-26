@@ -6,6 +6,9 @@ GODOT   := tools/godot.sh
 CLI_DLL := sim.cli/bin/Release/net10.0/glimmerfall-sim.dll
 CLI     := dotnet $(CLI_DLL)
 SIM     := $(CURDIR)/sim.cli/bin/Release/net10.0/glimmerfall-sim
+VENV    := .venv/.stamp
+SPRITES := PYTHONPATH=tools/sprites .venv/bin/python -m glimmer_sprites
+MODELS  ?= lamplighter ghoul brute
 
 POLICY  ?= kiter
 RUNS    ?= 36
@@ -20,6 +23,7 @@ KEYSTORE ?= $(HOME)/.android/debug.keystore
 .DEFAULT_GOAL := help
 .PHONY: help doctor build build-game cli import debug debug-act editor test smoke check \
 	bench bench-mac bot afk career digest golden \
+	venv palette sprites sprites-check \
 	export-deck export-mac export-android export-ios \
 	server server-test validator-image clean
 
@@ -46,9 +50,14 @@ build-game: ## собрать C# игры для запуска из Godot (Debu
 cli: ## собрать glimmerfall-sim (Release) — бенч, бот, реплеи, валидатор
 	dotnet build sim.cli/Glimmerfall.Sim.Cli.csproj -c Release
 
-# Импорт ресурсов Godot — только когда кэша ещё нет (свежий клон или после make clean), как штамп зависимостей в aegis-draft.
-import: ## headless-импорт ресурсов Godot, если кэша ещё нет
-	@if [ ! -d game/.godot/imported ]; then $(GODOT) --headless --path game --import; fi
+# Импорт ресурсов Godot — по штампу, как зависимости в aegis-draft: свежий клон, make clean или новые/изменённые листы.
+GAME_ART := $(shell find game -path game/.godot -prune -o \( -name '*.png' -o -name '*.svg' \) -print)
+
+import: game/.godot/.import-stamp ## headless-импорт ресурсов Godot, когда ассеты новее кэша
+
+game/.godot/.import-stamp: $(GAME_ART)
+	$(GODOT) --headless --path game --import
+	@touch $@
 
 debug: build-game import ## спайк орды в окне из Debug-сборки: F1 — автопилот/ручное (ARGS="--enemies 2000")
 	$(GODOT) --path game -- $(ARGS)
@@ -67,7 +76,7 @@ smoke: build-game ## headless-импорт и смоук сцены орды, к
 	$(GODOT) --headless --path game --import
 	$(GODOT) --headless --path game --fixed-fps 60 -- --smoke-frames 240
 
-check: build test smoke server-test ## всё, что гоняет CI (кроме матрицы ОС и Docker), плюс скиллы и diff
+check: build test smoke server-test sprites-check ## всё, что гоняет CI (кроме матрицы ОС и Docker), плюс скиллы и diff
 	python3 -m venv /tmp/glimmerfall-skill-check
 	/tmp/glimmerfall-skill-check/bin/pip install -q -r .claude/skills/agent-skill-maintenance/tools/requirements.txt
 	/tmp/glimmerfall-skill-check/bin/python .claude/skills/agent-skill-maintenance/tools/validate_skills.py
@@ -96,6 +105,27 @@ digest: cli ## набор дайджестов для сверки ОС (как 
 
 golden: ## перезаписать golden-реплеи — только осознанно, после бампа SimVersion.Balance
 	bash sim.tests/golden/regenerate.sh
+
+## Арт-конвейер (tools/sprites, скилл sprite-pipeline)
+venv: $(VENV) ## Python-окружение конвейера в .venv (numpy, Pillow, jsonschema — пины в tools/sprites/requirements.txt)
+
+$(VENV): tools/sprites/requirements.txt
+	python3 -m venv .venv
+	.venv/bin/python -m pip install -q -r tools/sprites/requirements.txt
+	touch $(VENV)
+
+palette: venv ## проверить мастер-палитру, записать palette.gpl для Aseprite и превью docs/art/palette.png
+	$(SPRITES) palette
+
+sprites: venv ## Blender → листы обеих сеток (MODELS=…) в game/art/sprites; QA и контактные листы в build/sprites/contact
+	@for m in $(MODELS); do $(SPRITES) build $$m && $(SPRITES) build $$m --scale 1.5 || exit 1; done
+	$(SPRITES) qa --contact build/sprites/contact
+
+sprites-check: venv ## как джоб CI: тесты конвейера, QA-гейт листов, свежесть индекса, реестр происхождения
+	PYTHONPATH=tools/sprites .venv/bin/python -m unittest discover -s tools/sprites/tests
+	$(SPRITES) qa --gate
+	$(SPRITES) fresh
+	$(SPRITES) provenance
 
 ## Сборки для устройств
 export-deck: build-game ## Linux x86_64 для Steam Deck → build/glimmerfall-steamdeck-spike.zip
