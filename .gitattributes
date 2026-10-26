@@ -1,0 +1,21 @@
+# Текст — LF во всех ОС: сцены и ресурсы Godot, C#, Python, Go и документы диффятся и мерджатся построчно.
+* text=auto eol=lf
+*.cs text diff=csharp
+*.tscn text
+*.tres text
+*.godot text
+*.uid text
+
+# Бинарные ассеты. Решение по Git LFS или отдельному хранилищу — BACKLOG G0.7, до первого .blend.
+*.png binary
+*.jpg binary
+*.webp binary
+*.aseprite binary
+*.blend binary
+*.fbx binary
+*.glb binary
+*.wav binary
+*.ogg binary
+*.mp3 binary
+*.ttf binary
+*.otf binary

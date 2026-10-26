@@ -1,0 +1,38 @@
+# Godot 4
+.godot/
+/android/
+
+# .NET
+bin/
+obj/
+*.user
+.vs/
+
+# Сборки и экспорты
+/build/
+/exports/
+
+# Env / секреты — только из окружения, никогда в git
+.env
+.env.*
+api_keys.txt
+
+# Blender: автосохранённые копии
+*.blend1
+*.blend2
+
+# Python (валидатор скиллов, инструменты конвейера)
+__pycache__/
+.venv/
+
+# Claude Code: настройки конкретной машины (общие для проекта — .claude/settings.json)
+/.claude/settings.local.json
+
+# OS / редакторы
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Черновики агентских прогонов и разовых проверок в любом каталоге
+**/.tmp_*
