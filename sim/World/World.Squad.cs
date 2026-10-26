@@ -155,7 +155,7 @@ public sealed partial class World
     /// <summary>Урон активному герою. Смерть — вынужденный свап; пал последний — поражение.</summary>
     private void DamageSquad(int amount, int sourceKind)
     {
-        if (Config.Scenario == Scenario.HordeBench || SquadInvulnerable || amount <= 0)
+        if (Config.Scenario == Scenario.HordeBench || SquadInvulnerable || amount <= 0 || Outcome != RunOutcome.InProgress)
         {
             return;
         }

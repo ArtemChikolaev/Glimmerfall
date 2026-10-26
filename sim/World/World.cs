@@ -36,8 +36,9 @@ public sealed partial class World
     public const int GemCapacity = 4096;
     public const int MaxModalOptions = 3;
 
-    /// <summary>Версия раскладки хеша состояния; меняется вместе с полями в <see cref="ComputeDigest"/>.</summary>
-    public const int DigestLayoutVersion = 1;
+    /// <summary>Версия раскладки хеша состояния; меняется вместе с полями в <see cref="ComputeDigest"/>.
+    /// 2 — радиусы снарядов и поколения всех слотов пулов (ревью 2026-10-26).</summary>
+    public const int DigestLayoutVersion = 2;
 
     public readonly SimConfig Config;
     public readonly ulong Seed;

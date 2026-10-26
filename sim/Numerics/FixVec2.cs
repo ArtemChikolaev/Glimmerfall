@@ -29,7 +29,7 @@ public readonly struct FixVec2 : IEquatable<FixVec2>
     public static Fix Dot(FixVec2 a, FixVec2 b) => a.X * b.X + a.Y * b.Y;
 
     /// <summary>Квадрат длины в сырых единицах Q32.32 (x²+y² по Raw): без сдвига, чтобы не терять точность у малых векторов.
-    /// Безопасно при |X|, |Y| &lt; 46 000 единиц.</summary>
+    /// Безопасно, пока X² + Y² &lt; 2^63 в сырых единицах: до ≈ 32 700 единиц по каждой оси, если велики обе.</summary>
     public long LengthSquaredRaw => X.Raw * X.Raw + Y.Raw * Y.Raw;
 
     public Fix Length => Fix.FromRaw((long)FixMath.ISqrt((ulong)LengthSquaredRaw));

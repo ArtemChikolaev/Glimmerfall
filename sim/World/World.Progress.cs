@@ -176,6 +176,13 @@ public sealed partial class World
         QueueSpawnAt(kind, Squad.X + FixMath.Cos(angle) * radius, Squad.Y + FixMath.Sin(angle) * radius, boss);
     }
 
+    /// <summary>Только для тестов: враг в заданной точке сразу, мимо директора.</summary>
+    internal int SpawnEnemyForTest(int kind, Fix x, Fix y)
+    {
+        EnemyKind k = Config.EnemyKinds[kind];
+        return Enemies.Spawn(kind, x, y, k.RadiusPx, Rules.EnemyHp(k, Config.Tier, ActIndex), 0);
+    }
+
     private void QueueSpawnAt(int kind, Fix x, Fix y, bool boss)
     {
         Fix margin = Fix.FromInt(24);

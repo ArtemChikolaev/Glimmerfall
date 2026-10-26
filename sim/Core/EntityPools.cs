@@ -5,8 +5,9 @@ namespace Glimmerfall.Sim.Core;
 
 /// <summary>
 /// Слоты фиксированной ёмкости со стеком свободных (LIFO) и поколениями. Порядок выдачи слотов детерминирован
-/// и входит в хеш состояния. Освобождение — только в конце тика (<see cref="World"/>), чтобы слот умирающего
-/// не достался новичку посреди тика (скилл sim-invariants, правило 2).
+/// и входит в хеш состояния. Враги освобождаются только в конце тика (<see cref="World"/>): на них держат хендлы,
+/// и слот умирающего не должен достаться новичку посреди тика (скилл sim-invariants, правило 2). Снаряды, выстрелы
+/// и опыт освобождаются сразу — хендлов на них нет; появятся (самонаведение, цепные эффекты) — переводи на конец тика.
 /// </summary>
 public abstract class SlotPool
 {
@@ -70,8 +71,11 @@ public abstract class SlotPool
         _freeCount = 0;
     }
 
-    /// <summary>Ссылка на сущность, переживающая тик: слот и поколение. Устаревшая ссылка не «оживает» в новичке.</summary>
-    public int Handle(int slot) => slot | (Generation[slot] << 16);
+    /// <summary>
+    /// Ссылка на сущность, переживающая тик: слот и младшие 15 бит поколения — хендл всегда неотрицателен, −1 значит «нет».
+    /// Устаревшая ссылка не «оживает» в новичке, пока слот не переиспользован 32 768 раз.
+    /// </summary>
+    public int Handle(int slot) => slot | ((Generation[slot] & 0x7FFF) << 16);
 
     public bool IsLive(int handle)
     {
@@ -80,9 +84,10 @@ public abstract class SlotPool
             return false;
         }
         int slot = handle & 0xFFFF;
-        return slot < Capacity && Alive[slot] && Generation[slot] == (ushort)(handle >> 16);
+        return slot < Capacity && Alive[slot] && (Generation[slot] & 0x7FFF) == handle >> 16;
     }
 
+    /// <summary>Раскладка пула в дайджесте: поколения всех слотов тоже — они определяют будущие хендлы.</summary>
     protected void AddPoolTo(ref StateHasher hasher)
     {
         hasher.Add(HighWater);
@@ -91,6 +96,10 @@ public abstract class SlotPool
         for (int i = 0; i < _freeCount; i++)
         {
             hasher.Add(_free[i]);
+        }
+        for (int i = 0; i < HighWater; i++)
+        {
+            hasher.Add(Generation[i]);
         }
     }
 }
@@ -260,6 +269,7 @@ public sealed class ProjectilePool : SlotPool
             hasher.Add(Y[i].Raw);
             hasher.Add(VX[i].Raw);
             hasher.Add(VY[i].Raw);
+            hasher.Add(Radius[i].Raw);
             hasher.Add(Life[i]);
             hasher.Add(Damage[i]);
             hasher.Add(Pierce[i]);
@@ -330,6 +340,7 @@ public sealed class ShotPool : SlotPool
             hasher.Add(Y[i].Raw);
             hasher.Add(VX[i].Raw);
             hasher.Add(VY[i].Raw);
+            hasher.Add(Radius[i].Raw);
             hasher.Add(Life[i]);
             hasher.Add(Damage[i]);
             hasher.Add(SourceKind[i]);

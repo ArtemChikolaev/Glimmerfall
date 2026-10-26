@@ -26,6 +26,48 @@ public class InvariantTests
         Assert.True(pool.IsLive(pool.Handle(second)));
     }
 
+    /// <summary>Хендл живой сущности остаётся живым и после 32 768 переиспользований слота (ревью 2026-10-26).</summary>
+    [Fact]
+    public void HandleStaysValidAtHighGenerations()
+    {
+        var pool = new EnemyPool(1);
+        int first = pool.Spawn(0, Fix.Zero, Fix.Zero, Fix.One, 10, 0);
+        int staleHandle = pool.Handle(first);
+        for (int i = 0; i < 40_000; i++)
+        {
+            pool.Alive[0] = false;
+            pool.Release(0);
+            pool.Spawn(0, Fix.Zero, Fix.Zero, Fix.One, 10, 0);
+        }
+        Assert.True(pool.Handle(0) >= 0);
+        Assert.True(pool.IsLive(pool.Handle(0)));
+        Assert.False(pool.IsLive(staleHandle));
+    }
+
+    /// <summary>
+    /// Одиночный враг вплотную к стоящему герою обязан бить: раньше преследователь вставал в 1 px от касания, а урон
+    /// считался только при перекрытии, и ни рядовой, ни элита урона не наносили (ревью 2026-10-26).
+    /// </summary>
+    [Theory]
+    [InlineData(EnemyIds.Brute)]
+    [InlineData(EnemyIds.Ravager)]
+    public void LoneChaserHitsAStandingHero(int kind)
+    {
+        SimConfig config = TestRuns.ShortAct();
+        config.ApplyOverride("spawn.startMilli=0");
+        config.ApplyOverride("spawn.endMilli=0");
+        config.ApplyOverride("elite.firstSeconds=1000");
+        config.ApplyOverride("hero.lamplighter.damage=0");
+        var world = new World(config, SeedHash.FromString("contact"));
+        world.SpawnEnemyForTest(kind, world.Squad.X + Fix.FromInt(60), world.Squad.Y);
+        var afk = new AfkPolicy();
+        for (int i = 0; i < 10 * TestRuns.Second; i++)
+        {
+            world.Step(afk.Decide(world));
+        }
+        Assert.True(world.Stats.Acts[0].DamageTaken > 0, $"{config.EnemyKinds[kind].Name} never hit the standing hero");
+    }
+
     [Fact]
     public void InvalidPickKeepsTheWorldPaused()
     {

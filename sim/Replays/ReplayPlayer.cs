@@ -22,13 +22,37 @@ public readonly struct VerifyResult
 /// </summary>
 public static class ReplayPlayer
 {
-    public static World Play(Replay replay, out VerifyResult result)
+    /// <summary>Воспроизводит реплей по его собственному конфигу (реплей отказывается, если данные изменились).</summary>
+    public static World Play(Replay replay, out VerifyResult result) => Play(replay, replay.BuildConfig(), out result);
+
+    /// <summary>
+    /// Дейлик даты: правила берутся из <see cref="DailyRules"/>, а не из реплея. Его заголовок и оверрайды обязаны
+    /// совпасть с каноническими дословно — 64-битный отпечаток не криптографический, и подобрать коллизию через
+    /// оверрайды можно за секунды (находка ревью 2026-10-26). Возвращает null, если реплей не дейлик этой даты.
+    /// </summary>
+    public static World? PlayDaily(Replay replay, string date, out VerifyResult result)
+    {
+        SimConfig canonical = DailyRules.Config(date);
+        if (replay.Seed != DailyRules.Seed(date))
+        {
+            result = new VerifyResult(false, -1, $"not the daily of {date}: seed {replay.Seed}");
+            return null;
+        }
+        if (replay.Overrides.Count != 0 || replay.ConfigHeader != canonical.ToHeader())
+        {
+            result = new VerifyResult(false, -1, $"not the daily of {date}: config differs from the canonical daily");
+            return null;
+        }
+        return Play(replay, canonical, out result);
+    }
+
+    public static World Play(Replay replay, SimConfig config, out VerifyResult result)
     {
         if (replay.Balance != SimVersion.Balance)
         {
             throw new ReplayIncompatibleException($"replay balance {replay.Balance} != sim {SimVersion.Balance}");
         }
-        var world = new World(replay.BuildConfig(), replay.Seed);
+        var world = new World(config, replay.Seed);
         int next = 0;
         int checkpoint = 0;
         InputFrame current = default;

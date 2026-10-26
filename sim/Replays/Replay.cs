@@ -96,11 +96,17 @@ public sealed class Replay
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Разбор текста реплея. Реплей — чужой ввод (сервер принимает его от клиента), поэтому любое отклонение от формата —
+    /// <see cref="FormatException"/>: неизвестная или повторная строка, кривое число, шаги ввода и контрольные точки
+    /// не строго по возрастанию, контрольная точка за пределами реплея.
+    /// </summary>
     public static Replay Parse(string text)
     {
         var replay = new Replay();
         bool sawMagic = false;
         bool sawFinal = false;
+        bool sawInputs = false;
         using var reader = new StringReader(text);
         string? line;
         while ((line = reader.ReadLine()) != null)
@@ -124,49 +130,118 @@ public sealed class Replay
                     break;
                 case "balance": replay.Balance = value; break;
                 case "policy": replay.Policy = value == "-" ? "" : value; break;
-                case "seed": replay.Seed = ulong.Parse(value, NumberStyles.Integer, CultureInfo.InvariantCulture); break;
+                case "seed": replay.Seed = ParseULong(value); break;
                 case "config": replay.ConfigHeader = value; break;
                 case "override": replay.Overrides.Add(value); break;
                 case "fingerprint": replay.ConfigFingerprint = ParseHex(value); break;
-                case "inputs": UnpackInputs(Base64Url.Decode(value), replay.Inputs); break;
+                case "inputs":
+                    if (sawInputs)
+                    {
+                        throw new FormatException("duplicate inputs line");
+                    }
+                    UnpackInputs(Base64Url.Decode(value), replay.Inputs);
+                    sawInputs = true;
+                    break;
                 case "checkpoint-every": replay.CheckpointEvery = ParseInt(value); break;
                 case "digest":
                     string[] d = value.Split(' ');
+                    if (d.Length != 2)
+                    {
+                        throw new FormatException($"bad digest line '{value}'");
+                    }
                     replay.Checkpoints.Add(new Checkpoint(ParseInt(d[0]), ParseHex(d[1])));
                     break;
                 case "final":
-                    foreach (string token in value.Split(' '))
-                    {
-                        int eq = token.IndexOf('=');
-                        string k = token.Substring(0, eq);
-                        string v = token.Substring(eq + 1);
-                        switch (k)
-                        {
-                            case "steps": replay.FinalSteps = ParseInt(v); break;
-                            case "ticks": replay.FinalTicks = ParseInt(v); break;
-                            case "outcome": replay.Outcome = (RunOutcome)Enum.Parse(typeof(RunOutcome), v); break;
-                            case "digest": replay.FinalDigest = ParseHex(v); break;
-                            default: throw new FormatException($"unknown final field '{k}'");
-                        }
-                    }
+                    ParseFinal(value, replay);
                     sawFinal = true;
                     break;
                 default:
                     throw new FormatException($"unknown replay line '{key}'");
             }
         }
-        if (!sawMagic || !sawFinal)
+        if (!sawMagic || !sawFinal || !sawInputs)
         {
             throw new FormatException("not a complete glimmerfall replay");
         }
+        Validate(replay);
         return replay;
+    }
+
+    private static void ParseFinal(string value, Replay replay)
+    {
+        foreach (string token in value.Split(' '))
+        {
+            int eq = token.IndexOf('=');
+            if (eq <= 0)
+            {
+                throw new FormatException($"bad final field '{token}'");
+            }
+            string k = token.Substring(0, eq);
+            string v = token.Substring(eq + 1);
+            switch (k)
+            {
+                case "steps": replay.FinalSteps = ParseInt(v); break;
+                case "ticks": replay.FinalTicks = ParseInt(v); break;
+                case "outcome":
+                    if (!Enum.TryParse(v, ignoreCase: false, out RunOutcome outcome) || !Enum.IsDefined(typeof(RunOutcome), outcome))
+                    {
+                        throw new FormatException($"bad outcome '{v}'");
+                    }
+                    replay.Outcome = outcome;
+                    break;
+                case "digest": replay.FinalDigest = ParseHex(v); break;
+                default: throw new FormatException($"unknown final field '{k}'");
+            }
+        }
+    }
+
+    /// <summary>Ввод и контрольные точки строго по возрастанию и внутри реплея — иначе проверка молча слабела бы.</summary>
+    private static void Validate(Replay replay)
+    {
+        if (replay.FinalSteps < 0 || replay.FinalTicks < 0 || replay.FinalTicks > replay.FinalSteps)
+        {
+            throw new FormatException("bad final steps or ticks");
+        }
+        if (replay.CheckpointEvery <= 0)
+        {
+            throw new FormatException("checkpoint-every must be positive");
+        }
+        int last = -1;
+        foreach (InputEntry entry in replay.Inputs)
+        {
+            if (entry.Step <= last || entry.Step >= replay.FinalSteps)
+            {
+                throw new FormatException($"input steps must increase and stay below {replay.FinalSteps}");
+            }
+            last = entry.Step;
+        }
+        last = 0;
+        foreach (Checkpoint checkpoint in replay.Checkpoints)
+        {
+            if (checkpoint.Step <= last || checkpoint.Step > replay.FinalSteps)
+            {
+                throw new FormatException($"checkpoint steps must increase within 1..{replay.FinalSteps}");
+            }
+            last = checkpoint.Step;
+        }
     }
 
     public static string Hex(ulong value) => value.ToString("x16", CultureInfo.InvariantCulture);
 
-    private static ulong ParseHex(string value) => ulong.Parse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+    private static ulong ParseHex(string value) =>
+        ulong.TryParse(value, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out ulong result)
+            ? result
+            : throw new FormatException($"bad hex value '{value}'");
 
-    private static int ParseInt(string value) => int.Parse(value, NumberStyles.Integer, CultureInfo.InvariantCulture);
+    private static ulong ParseULong(string value) =>
+        ulong.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out ulong result)
+            ? result
+            : throw new FormatException($"bad number '{value}'");
+
+    private static int ParseInt(string value) =>
+        int.TryParse(value, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int result)
+            ? result
+            : throw new FormatException($"bad number '{value}'");
 
     private static byte[] PackInputs(List<InputEntry> inputs)
     {
@@ -206,6 +281,10 @@ public sealed class Replay
                     throw new FormatException("truncated input log");
                 }
                 b = bytes[i++];
+                if (shift > 28)
+                {
+                    throw new FormatException("input step delta overflows");
+                }
                 delta |= (uint)(b & 0x7F) << shift;
                 shift += 7;
             }

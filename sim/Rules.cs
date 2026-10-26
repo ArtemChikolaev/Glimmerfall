@@ -25,6 +25,12 @@ public static class Rules
     public const int MendHealPercent = 35;
     public const int VigorHpPerLevel = 20;
 
+    /// <summary>
+    /// Преследователь встаёт в ChaseStopPx от касания с героем, а бьёт касанием в пределах ContactReachPx — досягаемость
+    /// обязана быть больше остановки: иначе одиночный враг стоял вплотную и не наносил урона (находка ревью 2026-10-26).
+    /// </summary>
+    public static readonly Fix ChaseStopPx = Fix.FromInt(1);
+    public static readonly Fix ContactReachPx = Fix.FromInt(2);
     public static readonly Fix KnockbackRadiusPx = Fix.FromInt(80);
     public static readonly Fix KnockbackDistancePx = Fix.FromInt(48);
     public static readonly Fix GemCollectRadiusPx = Fix.FromInt(12);

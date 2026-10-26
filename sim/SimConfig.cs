@@ -102,7 +102,10 @@ public sealed class SimConfig
             throw new ArgumentException($"override must be key=value: '{assignment}'");
         }
         string key = assignment.Substring(0, eq).Trim();
-        int value = int.Parse(assignment.Substring(eq + 1).Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture);
+        if (!int.TryParse(assignment.Substring(eq + 1).Trim(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int value))
+        {
+            throw new ArgumentException($"override value must be an integer: '{assignment}'");
+        }
         if (!TryApply(key, value))
         {
             throw new ArgumentException($"unknown override key '{key}'. Known: {string.Join(", ", KnownKeys)}");
@@ -160,29 +163,59 @@ public sealed class SimConfig
         return false;
     }
 
-    /// <summary>Поля верхнего уровня одной строкой «ключ=значение» (заголовок реплея). Виды — через оверрайды и отпечаток.</summary>
+    /// <summary>
+    /// Поля верхнего уровня одной строкой «ключ=значение» (заголовок реплея). Виды — через оверрайды и отпечаток.
+    /// Числа — в инвариантной культуре: иначе на шведской или финской локали минус стал бы U+2212 и сломал реплей.
+    /// </summary>
     public string ToHeader()
     {
         var parts = new List<string>
         {
-            "scenario=" + (int)Scenario,
-            "acts=" + Acts,
-            "actTicks=" + ActTicks,
-            "bossLeadTicks=" + BossLeadTicks,
-            "bossEnrageTicks=" + BossEnrageTicks,
-            "tier=" + Tier,
-            $"meta={Meta.Damage},{Meta.Health},{Meta.Speed},{Meta.Magnet}",
-            "squad=" + string.Join(",", Squad),
-            "maxEnemies=" + MaxEnemies,
-            "spawnStartMilli=" + SpawnRateStartMilli,
-            "spawnEndMilli=" + SpawnRateEndMilli,
-            "spawnPerActPercent=" + SpawnPerActPercent,
-            "eliteFirstTicks=" + EliteFirstTicks,
-            "elitePeriodTicks=" + ElitePeriodTicks,
-            "benchEnemies=" + BenchEnemies,
-            "benchProjectiles=" + BenchProjectiles,
+            "scenario=" + I((int)Scenario),
+            "acts=" + I(Acts),
+            "actTicks=" + I(ActTicks),
+            "bossLeadTicks=" + I(BossLeadTicks),
+            "bossEnrageTicks=" + I(BossEnrageTicks),
+            "tier=" + I(Tier),
+            "meta=" + I(Meta.Damage) + "," + I(Meta.Health) + "," + I(Meta.Speed) + "," + I(Meta.Magnet),
+            "squad=" + I(Squad[0]) + "," + I(Squad[1]) + "," + I(Squad[2]),
+            "maxEnemies=" + I(MaxEnemies),
+            "spawnStartMilli=" + I(SpawnRateStartMilli),
+            "spawnEndMilli=" + I(SpawnRateEndMilli),
+            "spawnPerActPercent=" + I(SpawnPerActPercent),
+            "eliteFirstTicks=" + I(EliteFirstTicks),
+            "elitePeriodTicks=" + I(ElitePeriodTicks),
+            "benchEnemies=" + I(BenchEnemies),
+            "benchProjectiles=" + I(BenchProjectiles),
         };
         return string.Join(" ", parts);
+    }
+
+    private static string I(int value) => value.ToString(CultureInfo.InvariantCulture);
+
+    /// <summary>Конфиг из реплея — чужой ввод: значения, на которых сим упал бы (ноль актов, деление на ноль, чужой герой), — отказ.</summary>
+    private void Validate()
+    {
+        bool ok = Acts >= 1 && Acts <= 16
+            && ActTicks >= SimConstants.TicksPerSecond
+            && BossLeadTicks >= 0 && BossEnrageTicks >= 0
+            && Tier >= 0
+            && Meta.Damage <= MetaLoadout.MaxRank && Meta.Health <= MetaLoadout.MaxRank
+            && Meta.Speed <= MetaLoadout.MaxRank && Meta.Magnet <= MetaLoadout.MaxRank
+            && MaxEnemies >= 1 && MaxEnemies <= World.EnemyCapacity
+            && SpawnRateStartMilli >= 0 && SpawnRateEndMilli >= 0
+            && EliteFirstTicks >= 1 && ElitePeriodTicks >= 1
+            && BenchEnemies >= 0 && BenchEnemies <= World.EnemyCapacity
+            && BenchProjectiles >= 0 && BenchProjectiles <= World.ProjectileCapacity
+            && (Scenario == Scenario.Run || Scenario == Scenario.HordeBench);
+        foreach (int hero in Squad)
+        {
+            ok &= hero >= 0 && hero < HeroKinds.Length;
+        }
+        if (!ok)
+        {
+            throw new FormatException("replay config is out of range: " + ToHeader());
+        }
     }
 
     /// <summary>Восстанавливает конфиг из заголовка и оверрайдов (обратное к <see cref="ToHeader"/>).</summary>
@@ -224,8 +257,16 @@ public sealed class SimConfig
         }
         foreach (string assignment in overrides)
         {
-            config.ApplyOverride(assignment);
+            try
+            {
+                config.ApplyOverride(assignment);
+            }
+            catch (ArgumentException e)
+            {
+                throw new FormatException(e.Message);
+            }
         }
+        config.Validate();
         return config;
     }
 
@@ -284,7 +325,10 @@ public sealed class SimConfig
         return h.Finish();
     }
 
-    private static int ParseInt(string value) => int.Parse(value, NumberStyles.Integer, CultureInfo.InvariantCulture);
+    private static int ParseInt(string value) =>
+        int.TryParse(value, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int result)
+            ? result
+            : throw new FormatException($"bad number '{value}'");
 
     private static int[] ParseList(string value, int expected)
     {

@@ -81,7 +81,7 @@ public sealed partial class World
             {
                 speed *= 2;
             }
-            long touch = (e.Radius[i] + heroRadius).Raw + Fix.OneRaw;
+            long touch = (e.Radius[i] + heroRadius + Rules.ChaseStopPx).Raw;
             bool touching = d2 <= touch * touch;
             Fix vx = Fix.Zero;
             Fix vy = Fix.Zero;
@@ -447,8 +447,9 @@ public sealed partial class World
                     long dx = e.X[j].Raw - Squad.X.Raw;
                     long dy = e.Y[j].Raw - Squad.Y.Raw;
                     long rs = (e.Radius[j] + heroRadius).Raw;
+                    long reach = rs + Rules.ContactReachPx.Raw;
                     long d2 = dx * dx + dy * dy;
-                    if (d2 >= rs * rs)
+                    if (d2 >= reach * reach)
                     {
                         continue;
                     }
@@ -464,7 +465,7 @@ public sealed partial class World
                             return;
                         }
                     }
-                    if (_heavyKind[kind.Id])
+                    if (_heavyKind[kind.Id] || d2 >= rs * rs)
                     {
                         continue;
                     }

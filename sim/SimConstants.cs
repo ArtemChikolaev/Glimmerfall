@@ -17,5 +17,5 @@ public static class SimConstants
 /// <summary>Версия правил и коэффициентов. Изменил правило или число — бампни: несовместимый реплей отказывается явно.</summary>
 public static class SimVersion
 {
-    public const string Balance = "0.1.0-spike";
+    public const string Balance = "0.1.1-spike";
 }

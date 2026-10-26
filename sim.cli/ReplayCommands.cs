@@ -83,26 +83,29 @@ public static class ReplayCommands
                 Replay replay = Replay.Parse(text);
                 verdict.Balance = replay.Balance;
                 verdict.Seed = replay.Seed.ToString(CultureInfo.InvariantCulture);
-                if (dailyDate.Length > 0 && !IsDaily(replay, dailyDate, out string reason))
-                {
-                    verdict.Message = reason;
-                    failures++;
-                    Console.WriteLine(json ? JsonSerializer.Serialize(verdict, VerdictJson.Default.Verdict) : $"FAIL {path}: {reason}");
-                    continue;
-                }
-                World world = ReplayPlayer.Play(replay, out VerifyResult result);
+                VerifyResult result;
+                World? world = dailyDate.Length > 0
+                    ? ReplayPlayer.PlayDaily(replay, dailyDate, out result)
+                    : ReplayPlayer.Play(replay, out result);
                 verdict.Ok = result.Ok;
                 verdict.Message = result.Message;
-                verdict.Steps = world.StepCount;
-                verdict.Ticks = world.Tick;
-                verdict.Outcome = world.Outcome.ToString();
-                verdict.Digest = Replay.Hex(world.ComputeDigest());
-                verdict.Score = result.Ok ? Rules.RunScore(world) : 0;
+                if (world != null)
+                {
+                    verdict.Steps = world.StepCount;
+                    verdict.Ticks = world.Tick;
+                    verdict.Outcome = world.Outcome.ToString();
+                    verdict.Digest = Replay.Hex(world.ComputeDigest());
+                    verdict.Score = result.Ok ? Rules.RunScore(world) : 0;
+                }
             }
-            catch (Exception e) when (e is ReplayIncompatibleException or FormatException or IOException)
+            catch (Exception e)
             {
+                // Валидатор принимает чужой ввод: любой сбой разбора или ре-симуляции — вердикт «не принят», а не падение
+                // без вердикта (сервер иначе отвечает 500 вместо 422).
                 verdict.Ok = false;
-                verdict.Message = e.Message;
+                verdict.Message = e is ReplayIncompatibleException or FormatException or IOException
+                    ? e.Message
+                    : $"invalid replay: {e.GetType().Name}: {e.Message}";
             }
             if (!verdict.Ok)
             {
@@ -113,23 +116,5 @@ public static class ReplayCommands
                 : $"{(verdict.Ok ? "OK  " : "FAIL")} {path}: {verdict.Message}");
         }
         return failures == 0 ? 0 : 1;
-    }
-
-    /// <summary>Реплей — дейлик даты: сид дня и отпечаток канонического конфига (отряд, тир, мета, акты, без оверрайдов).</summary>
-    private static bool IsDaily(Replay replay, string date, out string reason)
-    {
-        if (replay.Seed != DailyRules.Seed(date))
-        {
-            reason = $"not the daily of {date}: seed {replay.Seed}";
-            return false;
-        }
-        ulong expected = DailyRules.Config(date).ComputeFingerprint();
-        if (replay.ConfigFingerprint != expected)
-        {
-            reason = $"not the daily of {date}: config fingerprint {Replay.Hex(replay.ConfigFingerprint)} != {Replay.Hex(expected)}";
-            return false;
-        }
-        reason = "";
-        return true;
     }
 }
