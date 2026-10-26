@@ -10,7 +10,7 @@
 - ✅ G0.1 Концепция «Отряд», столпы, платформы — [ADR 0001](adr/0001-concept-and-scope.md) (2026-10-26).
 - ✅ G0.2 Рабочее название Glimmerfall — выбрано владельцем 2026-10-26; быстрая проверка Steam, App Store и веба совпадений не нашла.
 - ✅ G0.3 Репозиторий с процессом: CLAUDE.md/AGENTS.md, скиллы с валидатором и CI, PRD, ADR 0001–0003, исследование (2026-10-26).
-- ✅ G0.4 GitHub-репозиторий [ArtemChikolaev/Glimmerfall](https://github.com/ArtemChikolaev/Glimmerfall) (приватный, создан владельцем), remote и первый push (2026-10-26).
+- ✅ G0.4 GitHub-репозиторий [ArtemChikolaev/Glimmerfall](https://github.com/ArtemChikolaev/Glimmerfall) (публичный, создан владельцем), remote и первый push (2026-10-26).
 - ⬜ G0.5 Проверка товарного знака «Glimmerfall» (WIPO Global Brand Database, EUIPO, USPTO), домен и хэндлы соцсетей.
 - ⬜ G0.6 Юрлицо и маршрут выплат Steam для разработчика из России (зарубежный счёт или юрлицо, либо издатель) — с юристом и бухгалтером. Без этого нет страницы в Steam.
 - ⬜ G0.7 Хранение тяжёлых исходников арта: Git LFS (с учётом квот GitHub) или отдельное хранилище — до первого `.blend`.
@@ -21,7 +21,7 @@
 
 Отчёты спайков — [docs/spikes/](spikes/README.md). Push и прогон CI на GitHub — по поручению владельца; до него «три ОС» проверены только описанием матрицы.
 
-- ✅ G1.0 Окружение (2026-10-26): .NET SDK 10.0.403, Godot 4.7.2 .NET и шаблоны экспорта, gh — со сверкой SHA-512; пины `global.json`, `.godot-version`, `Godot.NET.Sdk/4.7.2` — [отчёт](spikes/G1.0-environment.md). Остались `gh auth login` (владелец) и Aseprite к этапу 2.
+- ✅ G1.0 Окружение (2026-10-26): .NET SDK 10.0.403, Godot 4.7.2 .NET и шаблоны экспорта, gh — со сверкой SHA-512; пины `global.json`, `.godot-version`, `Godot.NET.Sdk/4.7.2` — [отчёт](spikes/G1.0-environment.md). Осталось: Aseprite к этапу 2.
 - ✅ G1.1 Скелет решения (2026-10-26): `sim/`, `sim.tests/`, `sim.cli/`, `game/`, `server/`, `validator/`; `dotnet build Glimmerfall.slnx` и тесты зелёные, headless-импорт и смоук Godot проходят локально; джобы CI описаны — [отчёт](spikes/G1.1-skeleton.md).
 - 🟨 G1.2 Детерминизм: Q48.16, табличная тригонометрия, PCG32 с потоками, xxHash64-дайджест, реплей с отпечатком данных, тест-запрет по IL, 4 golden-реплея; бит-в-бит между Debug/Release и CLI/Godot — [отчёт](spikes/G1.2-determinism.md). Осталось: прогон матрицы Windows x64 / Linux x64 / macOS arm64 на GitHub.
 - 🟨 G1.3 Орда: 5 тыс. врагов и 2 тыс. снарядов — тик 0,8 мс (CLI), кадр 4,7 мс и 0,06% кадров > 8 мс на M1 Max, 10 вызовов отрисовки — [отчёт](spikes/G1.3-horde.md). Осталось: замер на Steam Deck (сборка `build/glimmerfall-steamdeck-spike.zip`, инструкция в отчёте).
