@@ -23,6 +23,25 @@ public enum AssistKind : byte
     ChainLightning = 2,
 }
 
+/// <summary>Стихия героя: по паре стихий выбирается дуэт-приём связки.</summary>
+public enum Element : byte
+{
+    Fire = 0,
+    Frost = 1,
+    Lightning = 2,
+}
+
+/// <summary>Дуэт-приём связки (PRD §5): смесь стихий пары, которая сменяется на поле.</summary>
+public enum DuetKind : byte
+{
+    /// <summary>Огонь + мороз: паровой взрыв вокруг отряда, сильный отброс рядовых.</summary>
+    SteamBurst = 0,
+    /// <summary>Мороз + молния: удары с неба, сначала по элитам и боссу, затем по ближайшим.</summary>
+    IceStorm = 1,
+    /// <summary>Молния + огонь: взрывы в нескольких точках вокруг отряда, от ближних к дальним.</summary>
+    Firestorm = 2,
+}
+
 /// <summary>Вид героя отряда. Единицы — в именах полей. Создаётся заново для каждого конфига (копия на забег).</summary>
 public sealed class HeroKind
 {
@@ -31,6 +50,7 @@ public sealed class HeroKind
     public int MaxHp;
     public Fix SpeedPxPerTick;
     public Fix RadiusPx;
+    public Element Element;
     public AssistKind Assist;
     public AttackPattern Pattern;
     public int AttackIntervalTicks;

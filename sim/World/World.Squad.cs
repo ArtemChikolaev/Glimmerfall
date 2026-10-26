@@ -12,8 +12,8 @@ public sealed partial class World
     private static readonly Fix ArenaMax = Fix.FromInt(SimConstants.ArenaSize);
     private const int GoldenAngle = 25033; // ≈137,5° в единицах угла: равномерная спираль без повторов
 
-    /// <summary>Задетые цепной молнией за один ассист (до восьми слотов) — рабочий буфер, не состояние.</summary>
-    private readonly List<int> _chainHits = new(Rules.ChainLightningTargets);
+    /// <summary>Слоты врагов, уже задетых приёмом (цепная молния, ледяная гроза), — рабочий буфер, не состояние.</summary>
+    private readonly List<int> _chainHits = new(Rules.IceStormTargets);
 
     private void UpdateSquad(in InputFrame input)
     {
@@ -29,6 +29,10 @@ public sealed partial class World
         if (s.AssistCooldown > 0)
         {
             s.AssistCooldown--;
+        }
+        if (s.LinkTicks > 0 && --s.LinkTicks == 0)
+        {
+            s.LinkHelper = -1;
         }
         if (s.InvulnerableTicks > 0)
         {
@@ -131,6 +135,12 @@ public sealed partial class World
     private void SwapTo(int next, bool forced)
     {
         Squad s = Squad;
+        HeroKind outgoing = Config.HeroKinds[s.Kind[s.Active]];
+        HeroKind kind = Config.HeroKinds[s.Kind[next]];
+        // связка (PRD §5): свап по своей воле в окне после ассиста — на того, кто выпрыгнул; любой свап окно закрывает
+        bool linked = !forced && s.LinkTicks > 0 && next == s.LinkHelper;
+        s.LinkTicks = 0;
+        s.LinkHelper = -1;
         s.Active = next;
         s.SwapCooldown = Rules.SwapCooldownTicks;
         s.InvulnerableTicks = forced ? Rules.ForcedSwapInvulnerableTicks : Rules.SwapInvulnerableTicks;
@@ -138,18 +148,24 @@ public sealed partial class World
         {
             Stats.Acts[ActIndex].Swaps++;
         }
-        Emit(SimEventType.Swap, s.X, s.Y, s.Kind[next], forced ? 1 : 0);
-        // вход героя (PRD §5): удар по кругу, затем отброс рядовых
-        HeroKind kind = Config.HeroKinds[s.Kind[next]];
-        int damage = Rules.SwapStrikeDamage(kind, BlessingLevels[(int)Blessing.Might], Config.Meta);
-        Emit(SimEventType.SwapStrike, s.X, s.Y, kind.Id, Rules.KnockbackRadiusPx.FloorToInt());
-        StrikeCircle(Rules.KnockbackRadiusPx, damage, kind.Id);
+        Emit(SimEventType.Swap, s.X, s.Y, kind.Id, forced ? 1 : 0);
+        if (linked && Rules.TryDuet(outgoing.Element, kind.Element, out DuetKind duet))
+        {
+            Duet(duet, outgoing, kind);
+        }
+        else
+        {
+            // вход героя (PRD §5): удар по кругу
+            int damage = Rules.SwapStrikeDamage(kind, BlessingLevels[(int)Blessing.Might], Config.Meta);
+            Emit(SimEventType.SwapStrike, s.X, s.Y, kind.Id, Rules.KnockbackRadiusPx.FloorToInt());
+            StrikeCircle(s.X, s.Y, Rules.KnockbackRadiusPx, damage, kind.Id);
+        }
         Knockback(Rules.KnockbackRadiusPx, Rules.KnockbackDistancePx);
     }
 
     /// <summary>
     /// Ассист (PRD §5): резервный герой выпрыгивает, бьёт фирменным приёмом и уходит; активный остаётся на поле.
-    /// Откат общий на отряд. Перебор врагов — по слотам: порядок детерминирован.
+    /// Откат общий на отряд; открывает окно связки на этого героя. Перебор врагов — по слотам: порядок детерминирован.
     /// </summary>
     private void Assist(int helper)
     {
@@ -157,12 +173,14 @@ public sealed partial class World
         HeroKind kind = Config.HeroKinds[s.Kind[helper]];
         int damage = Rules.AssistDamage(kind, BlessingLevels[(int)Blessing.Might], Config.Meta);
         s.AssistCooldown = Rules.AssistCooldownTicks;
+        s.LinkTicks = Rules.LinkWindowTicks;
+        s.LinkHelper = helper;
         Stats.Acts[ActIndex].Assists++;
         Emit(SimEventType.Assist, s.X, s.Y, kind.Id, Rules.AssistRadius(kind.Assist).FloorToInt(), s.FacingX, s.FacingY);
         switch (kind.Assist)
         {
             case AssistKind.FireRing:
-                StrikeCircle(Rules.FireRingRadiusPx, damage, kind.Id);
+                StrikeCircle(s.X, s.Y, Rules.FireRingRadiusPx, damage, kind.Id);
                 break;
             case AssistKind.ShieldBash:
                 ShieldBash(damage, kind.Id);
@@ -173,8 +191,8 @@ public sealed partial class World
         }
     }
 
-    /// <summary>Урон всем врагам в круге вокруг отряда; направление удара — от отряда к врагу.</summary>
-    private void StrikeCircle(Fix radius, int damage, int source)
+    /// <summary>Урон всем врагам в круге с центром (cx, cy); направление удара — от центра к врагу.</summary>
+    private void StrikeCircle(Fix cx, Fix cy, Fix radius, int damage, int source)
     {
         EnemyPool e = Enemies;
         long r2 = radius.Raw * radius.Raw;
@@ -184,8 +202,8 @@ public sealed partial class World
             {
                 continue;
             }
-            long dx = e.X[i].Raw - Squad.X.Raw;
-            long dy = e.Y[i].Raw - Squad.Y.Raw;
+            long dx = e.X[i].Raw - cx.Raw;
+            long dy = e.Y[i].Raw - cy.Raw;
             if (dx * dx + dy * dy > r2)
             {
                 continue;

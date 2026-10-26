@@ -312,6 +312,8 @@ public sealed class SimConfig
             h.Add(k.MaxHp);
             h.Add(k.SpeedPxPerTick.Raw);
             h.Add(k.RadiusPx.Raw);
+            h.Add((int)k.Element);
+            h.Add((int)k.Assist);
             h.Add((int)k.Pattern);
             h.Add(k.AttackIntervalTicks);
             h.Add(k.ProjectileCount);

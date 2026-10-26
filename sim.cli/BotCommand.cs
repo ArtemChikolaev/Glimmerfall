@@ -39,6 +39,7 @@ public sealed class ActRecord
     public int Swaps { get; set; }
     public int Dashes { get; set; }
     public int Assists { get; set; }
+    public int Duets { get; set; }
     public int LevelAtEnd { get; set; }
     public int PeakEnemies { get; set; }
 }
@@ -182,6 +183,7 @@ public static class BotCommand
                 Swaps = act.Swaps,
                 Dashes = act.Dashes,
                 Assists = act.Assists,
+                Duets = act.Duets,
                 LevelAtEnd = act.Cleared || act.WipeActTick >= 0 ? act.LevelAtEnd : world.Level,
                 PeakEnemies = act.PeakEnemies,
             });
@@ -210,7 +212,7 @@ public static class BotCommand
                 ? "—"
                 : $"{Sec(Stats.Quantile(wipes, 0.25))}/{Sec(Stats.Quantile(wipes, 0.5))}/{Sec(Stats.Quantile(wipes, 0.75))}";
             sb.AppendLine($"act {a + 1}: reached {Stats.Rate(reached.Count, n)} · cleared {Stats.Rate(reached.Count(r => r.Acts[a].Cleared), n)} · wipe time p25/p50/p75 {wipeTimes} (n={wipes.Count})");
-            sb.AppendLine($"       p50: kills {Median(reached, r => r.Acts[a].Kills)} · elites {Median(reached, r => r.Acts[a].EliteKills)} · level {Median(reached, r => r.Acts[a].LevelAtEnd)} · damage taken {Median(reached, r => r.Acts[a].DamageTaken)} · hero deaths {Median(reached, r => r.Acts[a].HeroDeaths)} · swaps {Median(reached, r => r.Acts[a].Swaps)} · dashes {Median(reached, r => r.Acts[a].Dashes)} · assists {Median(reached, r => r.Acts[a].Assists)} · peak enemies {Median(reached, r => r.Acts[a].PeakEnemies)}");
+            sb.AppendLine($"       p50: kills {Median(reached, r => r.Acts[a].Kills)} · elites {Median(reached, r => r.Acts[a].EliteKills)} · level {Median(reached, r => r.Acts[a].LevelAtEnd)} · damage taken {Median(reached, r => r.Acts[a].DamageTaken)} · hero deaths {Median(reached, r => r.Acts[a].HeroDeaths)} · swaps {Median(reached, r => r.Acts[a].Swaps)} · dashes {Median(reached, r => r.Acts[a].Dashes)} · assists {Median(reached, r => r.Acts[a].Assists)} · duets {Median(reached, r => r.Acts[a].Duets)} · peak enemies {Median(reached, r => r.Acts[a].PeakEnemies)}");
         }
         var byMinute = records.Where(r => r.Outcome == "defeat")
             .GroupBy(r => r.Ticks / (60 * SimConstants.TicksPerSecond))

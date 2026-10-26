@@ -8,18 +8,29 @@ using Xunit;
 
 namespace Glimmerfall.Sim.Tests;
 
-/// <summary>Приёмы отряда (PRD §5): ассист резервного героя и удар входящего при смене.</summary>
+/// <summary>Приёмы отряда (PRD §5): ассист резервного героя, удар входящего при смене, связка и дуэт-приёмы.</summary>
 public class SquadMoveTests
 {
-    private static World QuietWorld(string seed)
+    private static World QuietWorld(string seed, int[]? squad = null)
     {
         SimConfig config = TestRuns.ShortAct();
         config.ApplyOverride("spawn.startMilli=0");
         config.ApplyOverride("spawn.endMilli=0");
         config.ApplyOverride("elite.firstSeconds=1000");
+        if (squad != null)
+        {
+            config.Squad = squad;
+        }
         var world = new World(config, SeedHash.FromString(seed)) { CollectEvents = true };
         world.Step(default);
         return world;
+    }
+
+    /// <summary>Ассист, затем свап на того же героя — связка; события — только последнего шага (свапа).</summary>
+    private static void Link(World world)
+    {
+        world.Step(Press(InputButtons.Assist));
+        world.Step(Press(InputButtons.Swap));
     }
 
     private static InputFrame Press(InputButtons buttons) => new() { Buttons = buttons };
@@ -106,5 +117,130 @@ public class SquadMoveTests
         Assert.Equal(1, world.Squad.Active);
         Assert.Contains(world.Events, e => e.Type == SimEventType.SwapStrike && e.Kind == HeroIds.Warden);
         Assert.True(world.Enemies.Hp[close] < hp);
+    }
+
+    [Fact]
+    public void AssistOpensTheLinkWindowAndItCloses()
+    {
+        World world = QuietWorld("link-window");
+        world.Step(Press(InputButtons.Assist));
+        Assert.Equal(Rules.LinkWindowTicks, world.Squad.LinkTicks);
+        Assert.Equal(1, world.Squad.LinkHelper);
+        for (int t = 0; t < Rules.LinkWindowTicks; t++)
+        {
+            world.Step(default);
+        }
+        Assert.Equal(0, world.Squad.LinkTicks);
+        Assert.Equal(-1, world.Squad.LinkHelper);
+        world.Step(Press(InputButtons.Swap));
+        Assert.Contains(world.Events, e => e.Type == SimEventType.SwapStrike);
+        Assert.DoesNotContain(world.Events, e => e.Type == SimEventType.Duet);
+        Assert.Equal(0, world.Stats.Acts[0].Duets);
+    }
+
+    [Fact]
+    public void SwapInTheWindowFiresThePairsDuetInsteadOfTheEntryStrike()
+    {
+        World world = QuietWorld("link-duet");
+        Link(world);
+        SimEvent duet = Assert.Single(world.Events, e => e.Type == SimEventType.Duet);
+        Assert.Equal((int)DuetKind.SteamBurst, duet.Kind);
+        Assert.Equal(HeroIds.Warden, duet.Source);
+        Assert.Equal(HeroIds.Lamplighter, duet.Target);
+        Assert.DoesNotContain(world.Events, e => e.Type == SimEventType.SwapStrike);
+        Assert.Equal(1, world.Squad.Active);
+        Assert.Equal(0, world.Squad.LinkTicks);
+        Assert.Equal(1, world.Stats.Acts[0].Duets);
+        Assert.Equal(1, world.Stats.Acts[0].Swaps);
+    }
+
+    [Theory]
+    [InlineData(HeroIds.Lamplighter, HeroIds.Warden, DuetKind.SteamBurst)]
+    [InlineData(HeroIds.Warden, HeroIds.Lamplighter, DuetKind.SteamBurst)]
+    [InlineData(HeroIds.Warden, HeroIds.Sparkwright, DuetKind.IceStorm)]
+    [InlineData(HeroIds.Sparkwright, HeroIds.Warden, DuetKind.IceStorm)]
+    [InlineData(HeroIds.Sparkwright, HeroIds.Lamplighter, DuetKind.Firestorm)]
+    [InlineData(HeroIds.Lamplighter, HeroIds.Sparkwright, DuetKind.Firestorm)]
+    public void DuetIsChosenByThePairsElementsInAnyOrder(int active, int helper, DuetKind expected)
+    {
+        int third = 3 - active - helper;
+        World world = QuietWorld($"link-pair-{active}-{helper}", new[] { active, helper, third });
+        Link(world);
+        Assert.Equal((int)expected, Assert.Single(world.Events, e => e.Type == SimEventType.Duet).Kind);
+    }
+
+    [Fact]
+    public void ForcedSwapClosesTheWindowWithoutADuet()
+    {
+        World world = QuietWorld("link-forced");
+        world.Step(Press(InputButtons.Assist));
+        world.Squad.Hp[0] = 1;
+        world.SpawnEnemyForTest(EnemyIds.Shambler, world.Squad.X + Fix.FromInt(3), world.Squad.Y);
+        bool down = false;
+        for (int t = 0; t < Rules.LinkWindowTicks && !down; t++)
+        {
+            world.Step(default);
+            down = world.Events.Any(e => e.Type == SimEventType.HeroDown);
+            Assert.DoesNotContain(world.Events, e => e.Type == SimEventType.Duet);
+        }
+        Assert.True(down, "герой пал в окне связки");
+        Assert.Equal(1, world.Squad.Active);
+        Assert.Equal(0, world.Squad.LinkTicks);
+        Assert.Equal(0, world.Stats.Acts[0].Duets);
+    }
+
+    [Fact]
+    public void SteamBurstHitsAroundAndThrowsRankAndFileFar()
+    {
+        World world = QuietWorld("duet-steam");
+        world.Step(Press(InputButtons.Assist));
+        int brute = world.SpawnEnemyForTest(EnemyIds.Brute, world.Squad.X + Fix.FromInt(120), world.Squad.Y);
+        Fix before = world.Enemies.X[brute];
+        int hp = world.Enemies.Hp[brute];
+        world.Step(Press(InputButtons.Swap));
+        Assert.True(world.Enemies.Hp[brute] < hp);
+        Assert.True(world.Enemies.X[brute] > before + Fix.FromInt(90), "паровой взрыв отбрасывает дальше обычного входа");
+    }
+
+    [Fact]
+    public void IceStormStrikesHeavyFirstThenNearestDistinctTargets()
+    {
+        World world = QuietWorld("duet-ice", new[] { HeroIds.Warden, HeroIds.Sparkwright, HeroIds.Lamplighter });
+        world.Step(Press(InputButtons.Assist));
+        Fix x = world.Squad.X;
+        Fix y = world.Squad.Y;
+        world.SpawnEnemyForTest(EnemyIds.Ravager, x - Fix.FromInt(230), y);
+        for (int k = 0; k < Rules.IceStormTargets + 4; k++)
+        {
+            world.SpawnEnemyForTest(EnemyIds.Brute, x + Fix.FromInt(30 + 15 * k), y + Fix.FromInt(20));
+        }
+        world.Step(Press(InputButtons.Swap));
+        SimEvent[] bolts = world.Events.Where(e => e.Type == SimEventType.DuetStrike).ToArray();
+        Assert.Equal(Rules.IceStormTargets, bolts.Length);
+        Assert.Equal(x - Fix.FromInt(230), bolts[0].X);
+        Assert.Equal(bolts.Length, bolts.Select(b => (b.X.Raw, b.Y.Raw)).Distinct().Count());
+        Assert.True(bolts[1].X < bolts[2].X, "после элиты — от ближних рядовых к дальним");
+    }
+
+    [Fact]
+    public void FirestormBlastsStartNearestAndKeepTheirSpacing()
+    {
+        World world = QuietWorld("duet-fire", new[] { HeroIds.Sparkwright, HeroIds.Lamplighter, HeroIds.Warden });
+        world.Step(Press(InputButtons.Assist));
+        Fix x = world.Squad.X;
+        Fix y = world.Squad.Y;
+        for (int k = 0; k < 12; k++)
+        {
+            world.SpawnEnemyForTest(EnemyIds.Brute, x + Fix.FromInt(30 + 20 * k), y);
+        }
+        world.Step(Press(InputButtons.Swap));
+        SimEvent[] blasts = world.Events.Where(e => e.Type == SimEventType.DuetStrike).ToArray();
+        Assert.InRange(blasts.Length, 2, Rules.FirestormBlasts);
+        Assert.Equal(x + Fix.FromInt(30), blasts[0].X);
+        for (int b = 1; b < blasts.Length; b++)
+        {
+            Assert.True(blasts[b].X - blasts[b - 1].X >= Rules.FirestormSpacingPx, "центры взрывов не ближе шага");
+            Assert.True(blasts[b].X - x <= Rules.FirestormRangePx, "взрывы — в досягаемости");
+        }
     }
 }

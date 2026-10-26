@@ -61,6 +61,7 @@ public sealed class KiterPolicy : IBotPolicy
     private static readonly long WallMargin = Fix.FromInt(260).Raw;
     private static readonly int OrbitAngle = FixMath.Degrees(35);
     private const int HeadingStep = FixMath.FullTurn / 64;
+    private const int LinkReactionTicks = 30;
 
     public string Name => "kiter";
 
@@ -199,6 +200,13 @@ public sealed class KiterPolicy : IBotPolicy
         if (reserve >= 0 && s.AssistCooldown == 0 && danger >= 6)
         {
             buttons |= InputButtons.Assist;
+        }
+        // связка: окно после ассиста открыто — свап на выпрыгнувшего героя, если он не на исходе сил; с реакцией
+        // человека, а не в следующий тик — и приём помощника успевает доиграть на экране (демо на титуле — этот же бот)
+        if (s.LinkTicks > 0 && s.LinkTicks <= Rules.LinkWindowTicks - LinkReactionTicks && s.SwapCooldown == 0
+            && reserve == s.LinkHelper && s.Hp[reserve] * 100 / s.MaxHp[reserve] > 40)
+        {
+            buttons |= InputButtons.Swap;
         }
 
         if (fx == 0 && fy == 0)

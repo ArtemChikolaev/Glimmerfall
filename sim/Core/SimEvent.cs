@@ -21,6 +21,13 @@ public enum SimEventType : byte
     ChainLink = 11,
     /// <summary>Удар входящего героя при смене: Kind — вид героя, Amount — радиус.</summary>
     SwapStrike = 12,
+    /// <summary>
+    /// Дуэт-приём связки: Kind — <see cref="Content.DuetKind"/>, Amount — досягаемость, Dir — взгляд отряда;
+    /// Source — вид входящего героя, Target — вид уходящего (у этого события — герой, а не враг).
+    /// </summary>
+    Duet = 13,
+    /// <summary>Удар дуэта в точке (X, Y): молния ледяной грозы (Amount 0) или взрыв огненного шторма (Amount — радиус).</summary>
+    DuetStrike = 14,
 }
 
 /// <summary>

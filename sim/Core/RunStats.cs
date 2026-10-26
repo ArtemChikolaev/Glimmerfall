@@ -17,6 +17,7 @@ public sealed class ActStats
     public int Swaps;
     public int Dashes;
     public int Assists;
+    public int Duets;
     public int LevelAtEnd;
     public int PeakEnemies;
 }

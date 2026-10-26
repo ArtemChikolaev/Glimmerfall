@@ -3,9 +3,12 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using Glimmerfall.Sim.Bots;
+using Glimmerfall.Sim.Content;
 using Glimmerfall.Sim.Determinism;
 using Glimmerfall.Sim.Input;
+using Glimmerfall.Sim.Numerics;
 using Glimmerfall.Sim.Replays;
 using Xunit;
 
@@ -76,6 +79,39 @@ public class ReplayTests
         string text = replay.ToText().Replace("\nfingerprint ", "\noverride enemy.shambler.hp=99\nfingerprint ");
         Assert.Throws<ReplayIncompatibleException>(() => ReplayPlayer.Verify(Replay.Parse(text)));
     }
+
+    /// <summary>
+    /// Класс находки 2026-10-26: приём ассиста героя влиял на исход, но не входил в отпечаток — реплей со старыми
+    /// данными проигрался бы молча. Каждое поле видов героя и врага, кроме имени, обязано менять отпечаток.
+    /// </summary>
+    [Fact]
+    public void EveryKindFieldChangesTheFingerprint()
+    {
+        ulong baseline = TestRuns.ShortAct().ComputeFingerprint();
+        foreach (Type type in new[] { typeof(HeroKind), typeof(EnemyKind) })
+        {
+            foreach (FieldInfo field in type.GetFields(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (field.Name == nameof(HeroKind.Name))
+                {
+                    continue;
+                }
+                SimConfig config = TestRuns.ShortAct();
+                object kind = type == typeof(HeroKind) ? config.HeroKinds[0] : config.EnemyKinds[0];
+                field.SetValue(kind, Changed(field.GetValue(kind)!));
+                Assert.True(config.ComputeFingerprint() != baseline, $"{type.Name}.{field.Name} не входит в отпечаток");
+            }
+        }
+    }
+
+    private static object Changed(object value) => value switch
+    {
+        int i => i + 1,
+        bool b => !b,
+        Fix f => Fix.FromRaw(f.Raw + 1),
+        Enum e => Enum.ToObject(e.GetType(), Convert.ToInt32(e, CultureInfo.InvariantCulture) ^ 1),
+        _ => throw new InvalidOperationException($"нет правила изменения для {value.GetType().Name}"),
+    };
 
     [Fact]
     public void OverridesTravelWithTheReplay()

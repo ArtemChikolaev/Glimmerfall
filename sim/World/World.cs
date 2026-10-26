@@ -37,8 +37,9 @@ public sealed partial class World
     public const int MaxModalOptions = 3;
 
     /// <summary>Версия раскладки хеша состояния; меняется вместе с полями в <see cref="ComputeDigest"/>.
-    /// 2 — радиусы снарядов и поколения всех слотов пулов (ревью 2026-10-26); 3 — откат ассиста отряда.</summary>
-    public const int DigestLayoutVersion = 3;
+    /// 2 — радиусы снарядов и поколения всех слотов пулов (ревью 2026-10-26); 3 — откат ассиста отряда;
+    /// 4 — окно связки и герой, открывший его.</summary>
+    public const int DigestLayoutVersion = 4;
 
     public readonly SimConfig Config;
     public readonly ulong Seed;

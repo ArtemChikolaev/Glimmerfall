@@ -1,17 +1,17 @@
 # seed text: golden-afk
 glimmerfall-replay 1
-balance 0.2.0-squad
+balance 0.3.0-link
 policy afk
 seed 13050482281110882231
 config scenario=0 acts=1 actTicks=7200 bossLeadTicks=1800 bossEnrageTicks=7200 tier=0 meta=0,0,0,0 squad=0,1,2 maxEnemies=800 spawnStartMilli=1600 spawnEndMilli=4000 spawnPerActPercent=35 eliteFirstTicks=2400 elitePeriodTicks=2400 benchEnemies=5000 benchProjectiles=2000
 override enemy.gloom_warden.hp=300
 override spawn.endMilli=4000
-fingerprint 814035aaf9f31946
+fingerprint 61c74ebb108e5e8a
 inputs AAAAAADbCwAAAAEBAAAAANgIAAAAAQEAAAAA
 checkpoint-every 600
-digest 600 0a698a1761bcb6a9
-digest 1200 e16954ac129b43f7
-digest 1800 78c30d1b29795364
-digest 2400 d5ba034bd0dc0a6d
-digest 3000 36664406468d9b86
-final steps=3136 ticks=3134 outcome=Defeat digest=dca61eddb2cc3ce2
+digest 600 620d417d87a37056
+digest 1200 7075476f87479e3b
+digest 1800 bfd38e03bd7edec5
+digest 2400 b9e485c8f7291b38
+digest 3000 f0fa9b66d82b95ec
+final steps=3136 ticks=3134 outcome=Defeat digest=5de08536d0ed3d9b

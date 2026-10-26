@@ -32,6 +32,9 @@ public sealed class Squad
     public Fix DashDirY;
     public int SwapCooldown;
     public int AssistCooldown;
+    /// <summary>Окно связки после ассиста (тики) и слот выпрыгнувшего героя; свап на него в окне — дуэт-приём.</summary>
+    public int LinkTicks;
+    public int LinkHelper = -1;
     public int InvulnerableTicks;
     /// <summary>Поворот кольца «Новы» и спирали спайка орды, единицы угла.</summary>
     public int SpinAngle;
@@ -73,6 +76,8 @@ public sealed class Squad
         hasher.Add(DashDirY.Raw);
         hasher.Add(SwapCooldown);
         hasher.Add(AssistCooldown);
+        hasher.Add(LinkTicks);
+        hasher.Add(LinkHelper);
         hasher.Add(InvulnerableTicks);
         hasher.Add(SpinAngle);
     }

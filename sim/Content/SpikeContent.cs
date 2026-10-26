@@ -79,19 +79,19 @@ public static class SpikeContent
         new HeroKind
         {
             Id = HeroIds.Lamplighter, Name = "lamplighter", MaxHp = 100, SpeedPxPerTick = Fix.PerSecond(92), RadiusPx = Fix.FromInt(8),
-            Assist = AssistKind.FireRing, Pattern = AttackPattern.Bolt, AttackIntervalTicks = 34, ProjectileCount = 1, SpreadAngle = 0, Damage = 11,
+            Element = Element.Fire, Assist = AssistKind.FireRing, Pattern = AttackPattern.Bolt, AttackIntervalTicks = 34, ProjectileCount = 1, SpreadAngle = 0, Damage = 11,
             ProjectileSpeedPxPerTick = Fix.PerSecond(320), RangePx = Fix.FromInt(270), Pierce = 1, ProjectileRadiusPx = Fix.FromInt(4),
         },
         new HeroKind
         {
             Id = HeroIds.Warden, Name = "warden", MaxHp = 140, SpeedPxPerTick = Fix.PerSecond(84), RadiusPx = Fix.FromInt(9),
-            Assist = AssistKind.ShieldBash, Pattern = AttackPattern.Fan, AttackIntervalTicks = 46, ProjectileCount = 3, SpreadAngle = FixMath.Degrees(12), Damage = 8,
+            Element = Element.Frost, Assist = AssistKind.ShieldBash, Pattern = AttackPattern.Fan, AttackIntervalTicks = 46, ProjectileCount = 3, SpreadAngle = FixMath.Degrees(12), Damage = 8,
             ProjectileSpeedPxPerTick = Fix.PerSecond(260), RangePx = Fix.FromInt(210), Pierce = 2, ProjectileRadiusPx = Fix.FromInt(4),
         },
         new HeroKind
         {
             Id = HeroIds.Sparkwright, Name = "sparkwright", MaxHp = 90, SpeedPxPerTick = Fix.PerSecond(96), RadiusPx = Fix.FromInt(8),
-            Assist = AssistKind.ChainLightning, Pattern = AttackPattern.Nova, AttackIntervalTicks = 70, ProjectileCount = 10, SpreadAngle = 0, Damage = 7,
+            Element = Element.Lightning, Assist = AssistKind.ChainLightning, Pattern = AttackPattern.Nova, AttackIntervalTicks = 70, ProjectileCount = 10, SpreadAngle = 0, Damage = 7,
             ProjectileSpeedPxPerTick = Fix.PerSecond(210), RangePx = Fix.FromInt(190), Pierce = 1, ProjectileRadiusPx = Fix.FromInt(3),
         },
     };

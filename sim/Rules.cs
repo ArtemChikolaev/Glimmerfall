@@ -33,6 +33,15 @@ public static class Rules
     public const int ChainLightningTargets = 8;
 
     /// <summary>
+    /// Связка (PRD §5): после ассиста — окно, в котором свап на выпрыгнувшего героя запускает дуэт-приём пары.
+    /// Урон дуэта — доля суммы уронов атаки обоих героев.
+    /// </summary>
+    public const int LinkWindowTicks = 2 * 60;
+    public const int DuetDamagePercent = 400;
+    public const int IceStormTargets = 10;
+    public const int FirestormBlasts = 6;
+
+    /// <summary>
     /// Преследователь встаёт в ChaseStopPx от касания с героем, а бьёт касанием в пределах ContactReachPx — досягаемость
     /// обязана быть больше остановки: иначе одиночный враг стоял вплотную и не наносил урона (находка ревью 2026-10-26).
     /// </summary>
@@ -49,6 +58,12 @@ public static class Rules
     public static readonly Fix ShieldBashPushPx = Fix.FromInt(56);
     public static readonly Fix ChainFirstRangePx = Fix.FromInt(220);
     public static readonly Fix ChainHopPx = Fix.FromInt(130);
+    public static readonly Fix SteamBurstRadiusPx = Fix.FromInt(150);
+    public static readonly Fix SteamBurstPushPx = Fix.FromInt(96);
+    public static readonly Fix IceStormRangePx = Fix.FromInt(260);
+    public static readonly Fix FirestormRangePx = Fix.FromInt(240);
+    public static readonly Fix FirestormBlastRadiusPx = Fix.FromInt(52);
+    public static readonly Fix FirestormSpacingPx = Fix.FromInt(72);
 
     /// <summary>Урон приёма ассиста — от урона атаки героя с «Мощью» и метой.</summary>
     public static int AssistDamage(HeroKind kind, int mightLevel, in MetaLoadout meta) =>
@@ -63,6 +78,30 @@ public static class Rules
         AssistKind.FireRing => FireRingRadiusPx,
         AssistKind.ShieldBash => ShieldBashRadiusPx,
         _ => ChainFirstRangePx,
+    };
+
+    /// <summary>Урон дуэт-приёма — от суммы уронов атаки уходящего и входящего героев с «Мощью» и метой.</summary>
+    public static int DuetDamage(HeroKind outgoing, HeroKind incoming, int mightLevel, in MetaLoadout meta) =>
+        Percent(HeroDamage(outgoing, mightLevel, meta) + HeroDamage(incoming, mightLevel, meta), DuetDamagePercent);
+
+    /// <summary>Дуэт пары по стихиям, порядок не важен; у пары одной стихии дуэта нет.</summary>
+    public static bool TryDuet(Element a, Element b, out DuetKind duet)
+    {
+        duet = (a, b) switch
+        {
+            (Element.Fire, Element.Frost) or (Element.Frost, Element.Fire) => DuetKind.SteamBurst,
+            (Element.Frost, Element.Lightning) or (Element.Lightning, Element.Frost) => DuetKind.IceStorm,
+            _ => DuetKind.Firestorm,
+        };
+        return a != b;
+    }
+
+    /// <summary>Радиус дуэт-приёма (досягаемость) — для события и подсказки.</summary>
+    public static Fix DuetRadius(DuetKind duet) => duet switch
+    {
+        DuetKind.SteamBurst => SteamBurstRadiusPx,
+        DuetKind.IceStorm => IceStormRangePx,
+        _ => FirestormRangePx,
     };
 
     public static int Percent(int value, int percent) => (int)((long)value * percent / 100);
