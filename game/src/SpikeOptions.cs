@@ -41,6 +41,9 @@ public sealed class SpikeOptions
     /// <summary>Перед снимком открыть экран: pause, settings или result — проверка раскладки.</summary>
     public string? CaptureScreen;
 
+    /// <summary>Снять окно через несколько кадров после N-го ассиста (проверка приёма глазами).</summary>
+    public int CaptureAssist;
+
     /// <summary>Игра: сразу начать забег (мимо титула); с <see cref="RunAutopilot"/> — забег ведёт бот.</summary>
     public bool Autostart;
     public bool RunAutopilot;
@@ -98,6 +101,7 @@ public sealed class SpikeOptions
                 case "--capture-frame": options.CaptureFrame = NextInt(); break;
                 case "--capture-cards": options.CaptureCards = true; break;
                 case "--capture-screen": options.CaptureScreen = Next(); break;
+                case "--capture-assist": options.CaptureAssist = NextInt(); break;
                 case "--autostart": options.Autostart = true; break;
                 case "--autopilot": options.RunAutopilot = true; break;
                 case "--smoke-flow": options.SmokeFlowFrames = NextInt(); break;

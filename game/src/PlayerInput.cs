@@ -38,9 +38,13 @@ public static class PlayerInput
         {
             buttons |= InputButtons.Dash;
         }
-        if (Input.IsKeyPressed(Key.Q) || Input.IsKeyPressed(Key.E) || Input.IsJoyButtonPressed(0, JoyButton.X) || touch.SwapHeld)
+        if (Input.IsKeyPressed(Key.Q) || Input.IsJoyButtonPressed(0, JoyButton.X) || touch.SwapHeld)
         {
             buttons |= InputButtons.Swap;
+        }
+        if (Input.IsKeyPressed(Key.E) || Input.IsJoyButtonPressed(0, JoyButton.Y) || touch.AssistHeld)
+        {
+            buttons |= InputButtons.Assist;
         }
         InputFrame frame = InputFrame.Move((int)(x * 127f), (int)(y * 127f));
         frame.Buttons = buttons;

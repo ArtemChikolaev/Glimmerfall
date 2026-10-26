@@ -28,7 +28,7 @@ public partial class WorldView : Node2D
     private MapDecor _decor = null!;
     private SpriteLayer _ghouls = null!;
     private SpriteLayer _brutes = null!;
-    private SpriteLayer _heroLayer = null!;
+    private readonly SpriteLayer[] _heroLayers = new SpriteLayer[HeroIds.Count];
     private PointLight2D _lantern = null!;
     private InstanceLayer _gems = null!;
     private InstanceLayer _flames = null!;
@@ -37,6 +37,7 @@ public partial class WorldView : Node2D
     private InstanceLayer _sparks = null!;
     private InstanceLayer _rings = null!;
     private TelegraphOverlay _telegraphs = null!;
+    private LightningArcs _arcs = null!;
     private Particles _particles = null!;
     private readonly Rings _ringFx = new();
     private readonly List<Corpse> _corpses = new();
@@ -86,8 +87,11 @@ public partial class WorldView : Node2D
         AddChild(_decor);
         _ghouls = AddSprites(new SpriteLayer(SpriteSheet.Load("ghoul" + suffix), 1024));
         _brutes = AddSprites(new SpriteLayer(SpriteSheet.Load("brute" + suffix), 64));
-        _heroLayer = AddSprites(new SpriteLayer(SpriteSheet.Load("lamplighter" + suffix), 16));
-        _hero.Sheet = _heroLayer.Sheet;
+        for (int k = 0; k < HeroIds.Count; k++)
+        {
+            _heroLayers[k] = AddSprites(new SpriteLayer(SpriteSheet.Load(GameText.HeroSheets[k] + suffix), 16));
+        }
+        _hero.Layers = _heroLayers;
         _lantern = new PointLight2D { Texture = lightTexture, Color = palette["radiance2"], Energy = 1.05f, TextureScale = 3.6f };
         AddChild(_lantern);
 
@@ -99,6 +103,8 @@ public partial class WorldView : Node2D
         _shots = AddLayer(new InstanceLayer(glow, additive, 64));
         _projectiles = AddLayer(new InstanceLayer(glow, additive, 1024));
         _sparks = AddLayer(new InstanceLayer(glow, additive, 1024));
+        _arcs = new LightningArcs { Material = additive };
+        _fx.AddChild(_arcs);
         _telegraphs = new TelegraphOverlay();
         _fx.AddChild(_telegraphs);
         _decor.Init(suffix, world.Seed, _particles, lightTexture);
@@ -126,7 +132,10 @@ public partial class WorldView : Node2D
     /// <summary>Маска для проверки читаемости: герой и враги плоскими цветами, всё прочее скрыто.</summary>
     public void SetMaskMode(bool on)
     {
-        _heroLayer.SetMask(on, new Color(1, 0, 0));
+        foreach (SpriteLayer layer in _heroLayers)
+        {
+            layer.SetMask(on, new Color(1, 0, 0));
+        }
         _ghouls.SetMask(on, new Color(0, 1, 0));
         _brutes.SetMask(on, new Color(0, 0, 1));
         _ground.Visible = !on;
@@ -202,7 +211,56 @@ public partial class WorldView : Node2D
                 case SimEventType.EnemyFired:
                     _particles.Burst(x, y - 8, 6, _enemyShot, 60f, 0.25f, 3f);
                     break;
+                case SimEventType.Assist:
+                    AssistBurst(e, x, y, dx, dy);
+                    break;
+                case SimEventType.ChainLink:
+                {
+                    Element el = ElementOf(e.Kind);
+                    var from = new Vector2(x, y - (e.Amount == 0 ? 16 : 8));
+                    var to = new Vector2(x + dx, y + dy - 8);
+                    _arcs.Add(from, to, el.Glow, el.Core);
+                    _particles.Burst(to.X, to.Y, 8, el.Spark, 90f, 0.3f, 3f);
+                    break;
+                }
+                case SimEventType.SwapStrike:
+                {
+                    Element el = ElementOf(e.Kind);
+                    _ringFx.Add(x, y - 6, 8, e.Amount, 0.35f, el.Core);
+                    _particles.Burst(x, y - 8, 24, el.Spark, 160f, 0.4f, 4f);
+                    break;
+                }
             }
+        }
+    }
+
+    /// <summary>Ассист: резервный герой выпрыгивает рядом, его приём — эффектом своей стихии.</summary>
+    private void AssistBurst(SimEvent e, float x, float y, float dx, float dy)
+    {
+        Element el = ElementOf(e.Kind);
+        _hero.Assist(e.Kind, dx, dy);
+        HeroKind kind = _world.Config.HeroKinds[e.Kind];
+        switch (kind.Assist)
+        {
+            case AssistKind.FireRing:
+                _ringFx.Add(x, y - 6, 10, e.Amount, 0.45f, el.Core);
+                _ringFx.Add(x, y - 6, 4, e.Amount * 0.8f, 0.35f, el.Glow);
+                for (int k = 0; k < 36; k++)
+                {
+                    float angle = k * MathF.Tau / 36;
+                    float r = e.Amount * (0.55f + 0.45f * _particles.Random01());
+                    _particles.Trail(x + MathF.Cos(angle) * r, y - 6 + MathF.Sin(angle) * r * 0.75f, k % 3 == 0 ? el.Core : el.Spark, 0.6f, 5f, 20f, rise: 30f);
+                }
+                break;
+            case AssistKind.ShieldBash:
+                _particles.Spray(x + dx * 10, y - 10 + dy * 10, 40, el.Spark, dx, dy, 1.0f, 260f, 0.4f, 4f);
+                _particles.Spray(x + dx * 10, y - 10 + dy * 10, 16, el.Core, dx, dy, 0.6f, 200f, 0.3f, 5f);
+                _ringFx.Add(x + dx * 24, y - 8 + dy * 24, 6, 50, 0.3f, el.Core);
+                break;
+            case AssistKind.ChainLightning:
+                _ringFx.Add(x, y - 14, 4, 30, 0.25f, el.Core);
+                _particles.Burst(x, y - 14, 16, el.Spark, 120f, 0.3f, 3f);
+                break;
         }
     }
 
@@ -212,6 +270,7 @@ public partial class WorldView : Node2D
         _time += frameSeconds;
         _particles.Update(frameSeconds);
         _ringFx.Update(frameSeconds);
+        _arcs.Advance(frameSeconds);
         Squad squad = w.Squad;
         HeroPosition = new Vector2(Lerp(squad.PrevX, squad.X, alpha), Lerp(squad.PrevY, squad.Y, alpha));
         Vector2 half = _host.HalfView;
@@ -264,13 +323,23 @@ public partial class WorldView : Node2D
         _particles.Draw(_sparks);
         _sparks.End();
 
-        _heroLayer.Begin();
-        _hero.Draw(_heroLayer, HeroPosition, squad, w, frameSeconds);
-        _heroLayer.End();
+        foreach (SpriteLayer layer in _heroLayers)
+        {
+            layer.Begin();
+        }
+        _hero.Draw(HeroPosition, squad, w, frameSeconds);
+        foreach (SpriteLayer layer in _heroLayers)
+        {
+            layer.End();
+        }
         _lantern.Position = HeroPosition + new Vector2(0, -12);
         _lantern.Energy = 1.0f + 0.06f * MathF.Sin(_time * 11f) * MathF.Sin(_time * 5.3f);
         _telegraphs.Refresh(w, alpha);
-        DrawnInstances = _gems.Count + _ghouls.Count + _brutes.Count + _heroLayer.Count + _shots.Count + _projectiles.Count + _sparks.Count;
+        DrawnInstances = _gems.Count + _ghouls.Count + _brutes.Count + _shots.Count + _projectiles.Count + _sparks.Count;
+        foreach (SpriteLayer layer in _heroLayers)
+        {
+            DrawnInstances += layer.Count;
+        }
     }
 
     private void DrawProjectiles(float alpha, float frameSeconds)
@@ -445,12 +514,14 @@ public partial class WorldView : Node2D
 }
 
 /// <summary>
-/// Анимация героя в презентации: бег или стойка по движению; удар — по событию атаки, лицом к цели; вздрагивание —
-/// по попаданию; смерть — когда отряд пал; во время рывка — шлейф полупрозрачных копий.
+/// Анимация героев отряда в презентации: у каждого свой лист. Активный — бег или стойка по движению, удар по событию
+/// атаки лицом к цели, вздрагивание по попаданию, смерть, когда отряд пал; во время рывка — шлейф копий. Смена героя
+/// (PRD §5): уходящий делает приём и растворяется (павший — падает), входящий выходит с ударом.
 /// </summary>
 public sealed class HeroAnimator
 {
     private const int GhostCount = 5;
+    private const float ExitSeconds = 0.45f;
 
     private readonly Ghost[] _ghosts = new Ghost[GhostCount];
     private SpriteClip? _action;
@@ -462,8 +533,14 @@ public sealed class HeroAnimator
     private float _dashTime;
     private float _ghostTimer;
     private int _ghostNext;
+    private int _activeSlot = -1;
+    private Exit _exit = new() { Kind = -1 };
+    private Exit _assist = new() { Kind = -1 };
 
-    public SpriteSheet Sheet { get; set; } = null!;
+    /// <summary>Слой с листом каждого героя, по виду героя.</summary>
+    public SpriteLayer[] Layers { get; set; } = Array.Empty<SpriteLayer>();
+
+    private SpriteSheet Sheet { get; set; } = null!;
 
     public void Flash()
     {
@@ -485,8 +562,34 @@ public sealed class HeroAnimator
 
     public void Dash() => _dashTime = 0.2f;
 
-    public void Draw(SpriteLayer layer, Vector2 at, Squad squad, World world, float frameSeconds)
+    /// <summary>Ассист: резервный герой появляется рядом по направлению взгляда, бьёт и растворяется.</summary>
+    public void Assist(int kind, float dx, float dy)
     {
+        float norm = MathF.Sqrt(dx * dx + dy * dy);
+        var dir = norm > 1e-4f ? new Vector2(dx / norm, dy / norm) : new Vector2(1, 0);
+        _assist = new Exit { Kind = kind, X = dir.X, Y = dir.Y, Direction = SpriteSheet.Direction(dir.X, dir.Y), Clip = "attack", Age = 0 };
+    }
+
+    public void Draw(Vector2 at, Squad squad, World world, float frameSeconds)
+    {
+        int kind = squad.Kind[squad.Active];
+        SpriteLayer layer = Layers[kind];
+        if (squad.Active != _activeSlot)
+        {
+            if (_activeSlot >= 0)
+            {
+                bool fell = !squad.Alive[_activeSlot];
+                _exit = new Exit { Kind = squad.Kind[_activeSlot], X = at.X, Y = at.Y, Direction = _direction, Clip = fell ? "death" : "attack", Age = 0 };
+            }
+            _activeSlot = squad.Active;
+            Sheet = layer.Sheet;
+            if (_exit.Kind >= 0)
+            {
+                Start("attack", _direction);
+            }
+        }
+        DrawExit(frameSeconds);
+        DrawAssist(at, frameSeconds);
         if ((squad.AliveCount == 0 || world.Outcome == RunOutcome.Defeat) && _action?.Name != "death")
         {
             Start("death", -1);
@@ -524,7 +627,7 @@ public sealed class HeroAnimator
             clip = Sheet[moving ? "run" : "idle"];
             frame = clip.FrameAt(_locomotionTime);
         }
-        Color tint = Colors.White.Lerp(ProceduralArt.HeroColors[squad.Kind[squad.Active]], 0.22f);
+        Color tint = Colors.White;
         tint.A = world.SquadInvulnerable && (world.Tick / 4) % 2 == 0 ? 0.55f : 1f;
 
         _dashTime = Math.Max(0f, _dashTime - frameSeconds);
@@ -550,11 +653,66 @@ public sealed class HeroAnimator
         layer.Add(at.X, at.Y, frame, clip.Row(direction), clip.Flip(direction), tint, _flash > 0 ? 0.8f : 0f);
     }
 
+    /// <summary>Уходящий герой: приём (или падение павшего) на месте смены, растворяется за <see cref="ExitSeconds"/>.</summary>
+    private void DrawExit(float frameSeconds)
+    {
+        if (_exit.Kind < 0)
+        {
+            return;
+        }
+        _exit.Age += frameSeconds;
+        SpriteClip clip = Layers[_exit.Kind].Sheet[_exit.Clip];
+        float life = _exit.Clip == "death" ? clip.Duration + 0.3f : ExitSeconds;
+        if (_exit.Age >= life)
+        {
+            _exit.Kind = -1;
+            return;
+        }
+        float alpha = _exit.Clip == "death" ? Math.Min(1f, (life - _exit.Age) / 0.3f) : 1f - _exit.Age / life;
+        Color fade = new(1f, 1f, 1f, alpha);
+        Layers[_exit.Kind].Add(_exit.X, _exit.Y, clip.FrameAt(_exit.Age * 1.6f), clip.Row(_exit.Direction), clip.Flip(_exit.Direction), fade, 0.25f * alpha);
+    }
+
+    /// <summary>Помощник ассиста: рядом с отрядом (X, Y хранят направление), вспыхивает, бьёт и гаснет за полсекунды.</summary>
+    private void DrawAssist(Vector2 at, float frameSeconds)
+    {
+        if (_assist.Kind < 0)
+        {
+            return;
+        }
+        _assist.Age += frameSeconds;
+        const float life = 0.55f;
+        if (_assist.Age >= life)
+        {
+            _assist.Kind = -1;
+            return;
+        }
+        SpriteClip clip = Layers[_assist.Kind].Sheet["attack"];
+        float alpha = Math.Min(1f, _assist.Age / 0.06f) * Math.Min(1f, (life - _assist.Age) / 0.2f);
+        Vector2 place = at + new Vector2(_assist.X, _assist.Y) * 18f + new Vector2(0, 2);
+        Layers[_assist.Kind].Add(place.X, place.Y, clip.FrameAt(_assist.Age * 1.7f), clip.Row(_assist.Direction), clip.Flip(_assist.Direction),
+            new Color(1f, 1f, 1f, alpha), 0.35f * (1f - _assist.Age / life));
+    }
+
     private void Start(string name, int direction)
     {
+        if (Sheet == null)
+        {
+            return;
+        }
         _action = Sheet[name];
         _actionTime = 0f;
         _actionDirection = direction;
+    }
+
+    private struct Exit
+    {
+        public int Kind;
+        public float X;
+        public float Y;
+        public int Direction;
+        public string Clip;
+        public float Age;
     }
 
     private struct Ghost
@@ -573,6 +731,67 @@ public sealed class HeroAnimator
         {
             _ghosts[g].Age = 1f;
         }
+    }
+}
+
+/// <summary>
+/// Дуги цепной молнии: ломаная от звена к звену, перерисовывается каждый кадр со своими изломами — мгновенная,
+/// ветвистая, с послесвечением (язык стихий, скилл game-feel-vfx). Рисуется аддитивно поверх мира.
+/// </summary>
+public partial class LightningArcs : Node2D
+{
+    private const float Life = 0.28f;
+    private const int Segments = 9;
+
+    private readonly List<Arc> _arcs = new();
+    private readonly Random _random = new();
+    private readonly Vector2[] _points = new Vector2[Segments + 1];
+
+    public void Add(Vector2 from, Vector2 to, Color glow, Color core) =>
+        _arcs.Add(new Arc { From = from, To = to, Glow = glow, Core = core, Age = 0 });
+
+    public void Advance(float seconds)
+    {
+        for (int i = _arcs.Count - 1; i >= 0; i--)
+        {
+            Arc arc = _arcs[i];
+            arc.Age += seconds;
+            if (arc.Age >= Life)
+            {
+                _arcs.RemoveAt(i);
+                continue;
+            }
+            _arcs[i] = arc;
+        }
+        QueueRedraw();
+    }
+
+    public override void _Draw()
+    {
+        foreach (Arc arc in _arcs)
+        {
+            Vector2 along = arc.To - arc.From;
+            Vector2 normal = new Vector2(-along.Y, along.X).Normalized();
+            float jitter = Math.Min(8f, along.Length() * 0.12f);
+            for (int k = 0; k <= Segments; k++)
+            {
+                float t = (float)k / Segments;
+                float offset = k == 0 || k == Segments ? 0 : (float)(_random.NextDouble() * 2 - 1) * jitter;
+                _points[k] = arc.From + along * t + normal * offset;
+            }
+            float fade = 1f - arc.Age / Life;
+            DrawPolyline(_points, new Color(arc.Glow, 0.55f * fade), 4f);
+            DrawPolyline(_points, new Color(arc.Core, fade), 1.5f);
+        }
+    }
+
+    private struct Arc
+    {
+        public Vector2 From;
+        public Vector2 To;
+        public Color Glow;
+        public Color Core;
+        public float Age;
     }
 }
 

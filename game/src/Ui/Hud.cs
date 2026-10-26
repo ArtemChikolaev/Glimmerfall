@@ -27,12 +27,13 @@ public partial class Hud : Control
     private Label _fps = null!;
     private Ability _dash = null!;
     private Ability _swap = null!;
+    private Ability _assist = null!;
     private ColorRect _hurt = null!;
     private float _hurtPulse;
 
     public bool ShowFps { get; set; }
 
-    public void Build(SpriteSheet heroSheet)
+    public void Build(SpriteSheet[] heroSheets)
     {
         SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         MouseFilter = MouseFilterEnum.Ignore;
@@ -45,7 +46,7 @@ public partial class Hud : Control
         squad.AddThemeConstantOverride("separation", 6);
         for (int i = 0; i < Squad.Size; i++)
         {
-            _heroes[i] = new HeroRow(heroSheet);
+            _heroes[i] = new HeroRow(heroSheets);
             squad.AddChild(_heroes[i].Root);
         }
         AddChild(squad);
@@ -95,6 +96,9 @@ public partial class Hud : Control
         bottom.AddChild(_dash.Root);
         _swap = new Ability("Смена", "Q");
         bottom.AddChild(_swap.Root);
+        _assist = new Ability("Ассист", "E");
+        _assist.Root.CustomMinimumSize = new Vector2(230, 0);
+        bottom.AddChild(_assist.Root);
         _level = UiKit.Text("", 20, UiKit.Glow, serif: true);
         _level.CustomMinimumSize = new Vector2(70, 0);
         _level.HorizontalAlignment = HorizontalAlignment.Right;
@@ -134,7 +138,10 @@ public partial class Hud : Control
         _fps.Visible = ShowFps;
         _fps.Text = $"{Engine.GetFramesPerSecond():0} кадр/с";
         _dash.Refresh(s.DashCooldown, Rules.DashCooldownTicks, s.DashTicks > 0);
-        _swap.Refresh(s.SwapCooldown, Rules.SwapCooldownTicks, false, world.NextAliveReserve() < 0);
+        int helper = world.NextAliveReserve();
+        _swap.Refresh(s.SwapCooldown, Rules.SwapCooldownTicks, false, helper < 0);
+        _assist.Name = helper >= 0 ? $"Ассист: {GameText.HeroNames[s.Kind[helper]]}" : "Ассист";
+        _assist.Refresh(s.AssistCooldown, Rules.AssistCooldownTicks, false, helper < 0);
 
         float lowHp = s.Alive[s.Active] ? 1f - (float)s.Hp[s.Active] / s.MaxHp[s.Active] : 0f;
         float danger = lowHp > 0.7f ? (lowHp - 0.7f) / 0.3f * (0.35f + 0.15f * MathF.Sin((float)Time.GetTicksMsec() / 180f)) : 0f;
@@ -182,21 +189,28 @@ void fragment() {
         private readonly StyleBoxFlat _active;
         private readonly StyleBoxFlat _idle;
 
-        public HeroRow(SpriteSheet sheet)
+        private readonly Texture2D[] _portraits;
+
+        public HeroRow(SpriteSheet[] sheets)
         {
             _active = UiKit.Box(UiKit.SootLight, UiKit.Glow, 2, 4);
             _idle = UiKit.Box(UiKit.WithAlpha(MasterPalette.Instance["gloom1"], 0.7f), UiKit.WithAlpha(UiKit.BrassDark, 0.6f), 1, 4);
             Root = new PanelContainer { MouseFilter = MouseFilterEnum.Ignore, CustomMinimumSize = new Vector2(300, 0) };
             var row = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
             row.AddThemeConstantOverride("separation", 8);
-            SpriteClip idle = sheet["idle"];
-            int ax = sheet.AnchorX;
-            int ay = sheet.AnchorY;
-            var region = new Rect2(ax - 16, idle.Row(0) * sheet.CellHeight + ay - 52, 32, 30);
+            // портрет — голова и плечи из кадра стойки лицом к камере, по листу каждого героя
+            _portraits = new Texture2D[sheets.Length];
+            for (int k = 0; k < sheets.Length; k++)
+            {
+                SpriteSheet sheet = sheets[k];
+                float size = 36 * sheet.GridScale;
+                var region = new Rect2(sheet.AnchorX - size / 2, sheet["idle"].Row(0) * sheet.CellHeight + sheet.AnchorY - 54 * sheet.GridScale, size, size * 0.9f);
+                _portraits[k] = new AtlasTexture { Atlas = sheet.Texture, Region = region };
+            }
             _portrait = new TextureRect
             {
-                Texture = new AtlasTexture { Atlas = sheet.Texture, Region = region },
-                CustomMinimumSize = new Vector2(48, 45),
+                Texture = _portraits[0],
+                CustomMinimumSize = new Vector2(52, 47),
                 ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
                 StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
                 TextureFilter = TextureFilterEnum.Nearest,
@@ -229,8 +243,11 @@ void fragment() {
             _hp.MaxValue = s.MaxHp[index];
             _hp.Value = s.Hp[index];
             _hpText.Text = alive ? $"{s.Hp[index]}/{s.MaxHp[index]}" : "пал";
-            Color tint = Colors.White.Lerp(ProceduralArt.HeroColors[kind], 0.35f);
-            _portrait.Modulate = alive ? tint : new Color(0.35f, 0.35f, 0.4f);
+            if (_portrait.Texture != _portraits[kind])
+            {
+                _portrait.Texture = _portraits[kind];
+            }
+            _portrait.Modulate = alive ? Colors.White : new Color(0.35f, 0.35f, 0.4f);
             Root.Modulate = active ? Colors.White : new Color(1, 1, 1, alive ? 0.8f : 0.5f);
         }
     }
@@ -241,12 +258,11 @@ void fragment() {
         public readonly PanelContainer Root;
         private readonly Label _label;
         private readonly ProgressBar _ready;
-        private readonly string _name;
         private readonly string _key;
 
         public Ability(string name, string key)
         {
-            _name = name;
+            Name = name;
             _key = key;
             Root = new PanelContainer { MouseFilter = MouseFilterEnum.Ignore, CustomMinimumSize = new Vector2(150, 0) };
             var column = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
@@ -258,12 +274,15 @@ void fragment() {
             Root.AddChild(column);
         }
 
+        /// <summary>Подпись способности; у ассиста — с именем героя, который выпрыгнет.</summary>
+        public string Name { get; set; }
+
         public void Refresh(int cooldown, int full, bool active, bool unavailable = false)
         {
             _ready.MaxValue = full;
             _ready.Value = full - cooldown;
             string state = unavailable ? "нет резерва" : cooldown > 0 ? $"{(cooldown + 59) / 60} с" : "готово";
-            _label.Text = $"{_name} [{_key}] · {state}";
+            _label.Text = $"{Name} [{_key}] · {state}";
             Root.Modulate = active ? new Color(1.3f, 1.2f, 0.9f) : cooldown > 0 || unavailable ? new Color(1, 1, 1, 0.65f) : Colors.White;
         }
     }

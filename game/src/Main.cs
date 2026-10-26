@@ -125,7 +125,8 @@ public partial class Main : Node
 
         _hud = new Hud();
         _ui.AddChild(_hud);
-        _hud.Build(SpriteSheet.Load(_options.Grid == 960 ? "lamplighter_960" : "lamplighter"));
+        string suffix = _options.Grid == 960 ? "_960" : "";
+        _hud.Build(Array.ConvertAll(GameText.HeroSheets, id => SpriteSheet.Load(id + suffix)));
         _numbers = new DamageNumbers();
         _ui.AddChild(_numbers);
         _numbers.Build(_host);
@@ -436,6 +437,13 @@ public partial class Main : Node
                 case SimEventType.Slam:
                     AddTrauma(0.7f);
                     break;
+                case SimEventType.Assist:
+                    AddTrauma(0.25f);
+                    if (_options.CaptureAssist > 0 && --_options.CaptureAssist == 0)
+                    {
+                        _options.CaptureFrame = _frames + 6;
+                    }
+                    break;
                 case SimEventType.EnemyKilled when e.Kind >= Sim.Content.EnemyIds.Ravager:
                     AddTrauma(0.45f);
                     break;
@@ -543,7 +551,8 @@ public partial class Main : Node
             SmokeFlow();
         }
         bool cardsReady = _options.CaptureCards && _cards.Visible && _frames > 10;
-        if (_options.CaptureUi != null && !_uiCaptured && (cardsReady || !_options.CaptureCards && _frames >= _options.CaptureFrame))
+        bool byFrame = !_options.CaptureCards && _options.CaptureAssist == 0 && _frames >= _options.CaptureFrame;
+        if (_options.CaptureUi != null && !_uiCaptured && (cardsReady || byFrame))
         {
             _uiCaptured = true;
             switch (_options.CaptureScreen)

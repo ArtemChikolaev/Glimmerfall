@@ -12,6 +12,9 @@ namespace Glimmerfall.Game;
 public static class GameText
 {
     public static readonly string[] HeroNames = { "Фонарщик", "Страж", "Искровед" };
+
+    /// <summary>Лист героя по виду (HeroIds): у каждого своя модель на общем риге.</summary>
+    public static readonly string[] HeroSheets = { "lamplighter", "warden", "sparkwright" };
     public static readonly string[] HeroElements = { "огонь", "мороз", "молния" };
     public static readonly string[] EnemyNames = { "Бродяга", "Бегун", "Громила", "Плевальщик", "Таран", "Опустошитель", "Страж мрака" };
     public static readonly string[] ActNames = { "Угасающий тракт", "Погост", "Собор Тьмы", "Пепельный предел" };

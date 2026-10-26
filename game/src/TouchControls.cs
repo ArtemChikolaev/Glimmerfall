@@ -15,6 +15,7 @@ public partial class TouchControls : Control
     private int _stickFinger = -1;
     private int _dashFinger = -1;
     private int _swapFinger = -1;
+    private int _assistFinger = -1;
     private Vector2 _origin;
     private Vector2 _current;
     private bool _autopilotToggle;
@@ -22,6 +23,7 @@ public partial class TouchControls : Control
     public bool Used { get; private set; }
     public bool DashHeld => _dashFinger >= 0;
     public bool SwapHeld => _swapFinger >= 0;
+    public bool AssistHeld => _assistFinger >= 0;
 
     /// <summary>Отклонение стика в единичном круге; ноль, если палец не на стике.</summary>
     public Vector2 Stick
@@ -95,6 +97,10 @@ public partial class TouchControls : Control
         {
             _swapFinger = finger;
         }
+        else if (at.DistanceTo(AssistCenter(size)) <= ButtonRadius * 1.3f)
+        {
+            _assistFinger = finger;
+        }
         else if (at.X < size.X * 0.5f && _stickFinger < 0)
         {
             _stickFinger = finger;
@@ -117,6 +123,10 @@ public partial class TouchControls : Control
         {
             _swapFinger = -1;
         }
+        if (finger == _assistFinger)
+        {
+            _assistFinger = -1;
+        }
     }
 
     public override void _Draw()
@@ -135,6 +145,8 @@ public partial class TouchControls : Control
         DrawString(ThemeDB.FallbackFont, DashCenter(size) + new Vector2(-30, 6), "РЫВОК", HorizontalAlignment.Left, -1, 16, ink);
         DrawCircle(SwapCenter(size), ButtonRadius * 0.8f, SwapHeld ? ink : idle);
         DrawString(ThemeDB.FallbackFont, SwapCenter(size) + new Vector2(-28, 6), "СМЕНА", HorizontalAlignment.Left, -1, 16, ink);
+        DrawCircle(AssistCenter(size), ButtonRadius * 0.8f, AssistHeld ? ink : idle);
+        DrawString(ThemeDB.FallbackFont, AssistCenter(size) + new Vector2(-34, 6), "АССИСТ", HorizontalAlignment.Left, -1, 16, ink);
         if (_stickFinger >= 0)
         {
             DrawArc(_origin, StickRadius, 0, Mathf.Tau, 32, ink, 3f);
@@ -144,5 +156,6 @@ public partial class TouchControls : Control
 
     private static Vector2 DashCenter(Vector2 size) => new(size.X - 80f, size.Y - 110f);
     private static Vector2 SwapCenter(Vector2 size) => new(size.X - 192f, size.Y - 134f);
+    private static Vector2 AssistCenter(Vector2 size) => new(size.X - 110f, size.Y - 230f);
     private static Rect2 AutoButton(Vector2 size) => new(size.X - 96f, 80f, 80f, 36f);
 }

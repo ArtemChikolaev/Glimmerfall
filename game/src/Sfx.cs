@@ -157,6 +157,16 @@ public partial class Sfx : Node
                 case SimEventType.EnemyFired:
                     Play(Sound.EnemyShot, 0.35f, 0.1f);
                     break;
+                case SimEventType.Assist:
+                    Play(e.Kind switch { HeroIds.Warden => Sound.CastFrost, HeroIds.Sparkwright => Sound.CastSpark, _ => Sound.CastFire }, 1f, 0f);
+                    Play(Sound.Kill, 0.8f, 0.05f);
+                    break;
+                case SimEventType.ChainLink:
+                    Play(Sound.CastSpark, 0.6f, 0.15f);
+                    break;
+                case SimEventType.SwapStrike:
+                    Play(Sound.Kill, 0.6f, 0.05f);
+                    break;
             }
         }
     }
