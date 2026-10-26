@@ -86,6 +86,7 @@
  },
  "source": {
   "kind": "procedural",
+  "class": "character",
   "model": "ghoul",
   "note": "тестовый рядовой враг: сутулый, когти, без оружия",
   "scale": 1.5,

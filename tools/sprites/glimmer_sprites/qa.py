@@ -137,10 +137,12 @@ def analyse(meta: dict, palette: Palette, gate: Gate = GATE) -> SheetReport:
     s = report.summary
     if abs(s["height_px"] - target) > gate.height_tolerance_px:
         fail.append(f"рост {s['height_px']} px вне цели {target}±{gate.height_tolerance_px}")
-    if s["tone"] < gate.tone_min:
-        fail.append(f"тон {s['tone']} < {gate.tone_min}: модель тонет в тёмном мире")
-    if s["lit_share"] < gate.lit_share_min:
-        fail.append(f"светлее мира только {s['lit_share']:.0%} силуэта < {gate.lit_share_min:.0%}")
+    # реквизит — часть мира и обязан быть в мировых тонах; светлее мира должны быть фигуры (план светлоты)
+    if meta["source"].get("class", "character") == "character":
+        if s["tone"] < gate.tone_min:
+            fail.append(f"тон {s['tone']} < {gate.tone_min}: модель тонет в тёмном мире")
+        if s["lit_share"] < gate.lit_share_min:
+            fail.append(f"светлее мира только {s['lit_share']:.0%} силуэта < {gate.lit_share_min:.0%}")
 
     for name, clip in meta["clips"].items():
         death = name == "death"

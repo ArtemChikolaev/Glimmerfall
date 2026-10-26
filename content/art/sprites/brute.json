@@ -86,6 +86,7 @@
  },
  "source": {
   "kind": "procedural",
+  "class": "character",
   "model": "brute",
   "note": "тестовая элита: тот же риг, массивные пропорции, костяная броня",
   "scale": 1.0,

@@ -337,6 +337,7 @@ def main():
 
     manifest = {
         "model": args.model,
+        "class": model.get("class", "character"),
         "note": model["note"],
         "scale": args.scale,
         "supersample": supersample,

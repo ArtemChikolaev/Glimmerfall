@@ -109,6 +109,7 @@
  },
  "source": {
   "kind": "procedural",
+  "class": "character",
   "model": "lamplighter",
   "note": "тестовый герой-фонарщик: капюшон, плащ, фонарь, клинок",
   "scale": 1.5,

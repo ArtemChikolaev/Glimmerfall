@@ -57,6 +57,7 @@
       "required": ["kind", "model", "scale", "renderer", "pipeline"],
       "properties": {
         "kind": {"enum": ["procedural", "blender", "hand"]},
+        "class": {"description": "character — фигура (тон и светлота против мира проверяются), prop — реквизит в мировых тонах", "enum": ["character", "prop"]},
         "model": {"type": "string"},
         "scale": {"type": "number"},
         "renderer": {"type": "string"},

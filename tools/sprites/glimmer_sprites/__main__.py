@@ -83,7 +83,7 @@ def cmd_build(args) -> int:
         "date": datetime.date.today().isoformat(),
         "ai": True,
         "placeholder": True,
-        "note": "тестовый манекен G2.3 для проверки конвейера и сетки, не арт",
+        "note": f"заглушка прототипа, не арт: {frames.manifest['note']}",
     })
     print(f"{sid}: ячейка {meta['cell'][0]}×{meta['cell'][1]}, лист {indexed.shape[1]}×{indexed.shape[0]}, "
           f"{image_path.stat().st_size // 1024} КБ → {qa.relative(image_path)}, {qa.relative(meta_path)}")

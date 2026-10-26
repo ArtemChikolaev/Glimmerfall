@@ -131,6 +131,75 @@ def brute_parts():
     return parts
 
 
+# ---------- реквизит карты: статичные модели на корневой кости, мировые рампы (план светлоты: мир темнее фигур) ----------
+
+def pillar_parts():
+    return [
+        box("root", (0, 0, 0.1), (0.72, 0.72, 0.2), "stone"),
+        cyl("root", (0, 0, 0.88), 0.25, 1.36, "stone", radius_top=0.22),
+        box("root", (0.03, 0.02, 1.62), (0.42, 0.36, 0.16), "stone", rot=(0, 9, 14)),
+        box("root", (0.5, -0.22, 0.12), (0.34, 0.3, 0.24), "stone", rot=(0, 0, 25)),
+    ]
+
+
+def tomb_parts():
+    return [
+        box("root", (0, 0, 0.04), (0.6, 0.3, 0.08), "stone"),
+        box("root", (0, 0, 0.36), (0.46, 0.13, 0.56), "stone"),
+        ball("root", (0, 0, 0.64), 0.23, "stone", scale=(1.0, 0.28, 0.55)),
+    ]
+
+
+def cross_parts():
+    return [
+        ball("root", (0, 0, 0.0), 0.42, "earth", scale=(0.75, 1.0, 0.22)),
+        box("root", (0, 0, 0.5), (0.1, 0.1, 0.92), "earth", rot=(0, 6, 0)),
+        box("root", (0, 0, 0.72), (0.52, 0.1, 0.1), "earth", rot=(0, 6, 0)),
+    ]
+
+
+def brazier_parts():
+    # тёмное железо в мировых тонах, светятся только угли — пламя и свет добавляет игра
+    return [
+        cyl("root", (0, 0, 0.03), 0.26, 0.06, "stone"),
+        cyl("root", (0, 0, 0.36), 0.05, 0.62, "stone"),
+        cyl("root", (0, 0, 0.72), 0.17, 0.2, "stone", radius_top=0.32),
+        ball("root", (0, 0, 0.82), 0.27, "fire", scale=(1.0, 1.0, 0.3), glow=True),
+    ]
+
+
+def statue_parts():
+    return [
+        box("root", (0, 0, 0.25), (0.78, 0.78, 0.5), "stone"),
+        box("root", (0, 0, 0.53), (0.86, 0.86, 0.06), "stone"),
+        cyl("root", (0, 0, 1.1), 0.33, 1.1, "stone", radius_top=0.17),
+        box("root", (0, -0.15, 1.36), (0.44, 0.14, 0.14), "stone"),
+        ball("root", (0, -0.01, 1.74), 0.13, "stone", scale=(0.95, 1.0, 1.1)),
+        ball("root", (0, 0.03, 1.77), 0.16, "stone", scale=(1.0, 1.0, 1.08)),
+    ]
+
+
+def sarcophagus_parts():
+    return [
+        box("root", (0, 0, 0.19), (1.05, 0.52, 0.38), "stone"),
+        box("root", (0.04, 0.02, 0.42), (1.1, 0.58, 0.09), "stone", rot=(0, 0, 7)),
+    ]
+
+
+def _static(t):
+    return {}
+
+
+def prop(note, parts, target_px, canvas, anchor_y=0.78):
+    return {
+        "note": note, "class": "prop", "height": 1.0, "width": 1.0, "target_px": target_px, "canvas": canvas,
+        "anchor_y": anchor_y, "parts": parts, "carrier": "root",
+        # статичный реквизит: «направления» — варианты поворота одной модели, без зеркала
+        "directions": ["S", "SE", "E", "NE"], "mirror": {},
+        "clips": {"idle": (_static, 1, 1, True, None, None)},
+    }
+
+
 # ---------- клипы: t ∈ [0, 1) для циклов, [0, 1] для разовых ----------
 
 def _wave(t, phase=0.0):
@@ -382,6 +451,12 @@ MODELS = {
             "death": (monster_death, 10, 12, False, ["S"], None),
         },
     },
+    "pillar": prop("обломок колонны с упавшим куском капители", pillar_parts, 70, 128),
+    "tomb": prop("надгробие", tomb_parts, 22, 48),
+    "cross": prop("могильный крест на холмике", cross_parts, 26, 48),
+    "brazier": prop("жаровня на треноге с углями (пламя — эффект в игре)", brazier_parts, 26, 48),
+    "statue": prop("статуя фонарщика в капюшоне на постаменте", statue_parts, 72, 128),
+    "sarcophagus": prop("саркофаг со сдвинутой крышкой", sarcophagus_parts, 20, 64, anchor_y=0.7),
     "brute": {
         "note": "тестовая элита: тот же риг, массивные пропорции, костяная броня",
         "height": 1.12, "width": 1.45, "target_px": 60, "canvas": 128, "anchor_y": 0.72,

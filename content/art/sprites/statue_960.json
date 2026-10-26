@@ -1,0 +1,68 @@
+{
+ "$schema": "../../schema/sprite-sheet.schema.json",
+ "id": "statue_960",
+ "image": "statue_960.png",
+ "grid": [
+  960,
+  540
+ ],
+ "cell": [
+  76,
+  116
+ ],
+ "columns": 1,
+ "anchor": [
+  38,
+  93
+ ],
+ "palette": "glimmerfall-master@0.1-draft",
+ "directions": {
+  "rendered": [
+   "S",
+   "SE",
+   "E",
+   "NE"
+  ],
+  "mirror": {}
+ },
+ "clips": {
+  "idle": {
+   "row": 0,
+   "frames": 1,
+   "fps": 1,
+   "loop": true,
+   "dirs": [
+    "S",
+    "SE",
+    "E",
+    "NE"
+   ]
+  }
+ },
+ "source": {
+  "kind": "procedural",
+  "class": "prop",
+  "model": "statue",
+  "note": "статуя фонарщика в капюшоне на постаменте",
+  "scale": 1.5,
+  "target_px": 108.0,
+  "supersample": 4,
+  "pixels_per_meter": 61.2516,
+  "renderer": "Blender 5.2.1 LTS Cycles",
+  "pipeline": 1,
+  "style": {
+   "key_light": [
+    -0.5512693810472418,
+    0.6515001776012856,
+    0.5212001420810285
+   ],
+   "shadow_below": 0.3,
+   "highlight_above": 0.82,
+   "glow_core_above": 0.55,
+   "coverage": 0.5,
+   "line_depth_m": 0.1,
+   "despeckle_px": 2,
+   "outline": true
+  }
+ }
+}

@@ -1,38 +1,86 @@
 {
  "pipeline": 1,
  "sources": {
-  "tools/sprites/blender/models.py": "2309f758f641ebd56d6276ba74b14b311d74125025d4c4b9c11d05660d3a484b",
-  "tools/sprites/blender/render.py": "9ed388d812e8cbd66f644da3f50f9f55f138e9782067388d6ef2b3b625a4f57e",
+  "tools/sprites/blender/models.py": "0a09c8e8f9dd64a516b3ad591395bba77810ea1e39a44a0398d591fb03d18a91",
+  "tools/sprites/blender/render.py": "bedea785423d31781e203612384a07ce3b8e4229d8d4a628a947578ba5b22bde",
   "tools/sprites/glimmer_sprites/build.py": "be5125b734227d7c22b2a9d81f9faee382a8588188deac1d6de24f8e0ced6b29",
-  "tools/sprites/glimmer_sprites/sheet.py": "d4345d9830c8c21d642ee5e94a1757bd7c3308786605d1634462525e96d0768f",
+  "tools/sprites/glimmer_sprites/sheet.py": "dccaa13d7b52c54978c751639e86c018beef995d0ff7f76d1a9a69a26fe7bf3c",
   "tools/sprites/glimmer_sprites/palette.py": "bd9a84bcebf16b48c2363e5d8ebb73b2e8bbd6a448c536b3972c43da0be5e718",
   "tools/sprites/glimmer_sprites/color.py": "d9d9d0073414d358211f7aefa35495b4d9102aa6f5b4dab9b1742d0a8f24caa5",
   "content/art/palette.json": "3a477c898ee96486c1514e92399a831bf2c13c58b5746916a406cbd64a56c363"
  },
  "sheets": {
+  "brazier": {
+   "meta_sha256": "6bb4d046cdc4c3a567c41e31164f6dc2bbbc70706cda6070437f6c64611bd59c",
+   "image_sha256": "283edd1a76b92323819f209d60c514d3e84094fb74a81dcdbd63306f69ab12e4"
+  },
+  "brazier_960": {
+   "meta_sha256": "7ec11c4aa085a0867da656aeb958db474bd082cfef5961786184d4f12db32c51",
+   "image_sha256": "d7c44a7e657db4c5a33b715eb3981845491d261b4851be0f3b664d689ec19b79"
+  },
   "brute": {
-   "meta_sha256": "5c1d30764567494ce6a15c8f2cf7806df1c0bfaf406a4f9a6d0d5fc7b136eddb",
+   "meta_sha256": "2c1e54197a862e1bc6a2724147cea8ceae83dc43819152b18c5da6d8683d0e8b",
    "image_sha256": "ff5f89b0c02872c79ebfdbd24432ea38927a115a62d7cce7e0cd19ecdcea45dc"
   },
   "brute_960": {
-   "meta_sha256": "42a9af20371d0533ca133fab12b207cdccdd030d67ec24929f18213d922fb28b",
+   "meta_sha256": "d86c3701bd8436154472ab0475d3d2339454e2da91a508b577a995f93b649bca",
    "image_sha256": "dc38b91ba3553e17fe747f49cc74a1338f2877436c533d96bad7e4b287488a4c"
   },
+  "cross": {
+   "meta_sha256": "99bdc17ee8b2b6bc776e8892f949bfde29b5c92bf9d6e3d8ef2691d88f78b54c",
+   "image_sha256": "712f1187ec90cccbd4a257e1130d4c01f926cbe6931526d100ed0bad4504b3a9"
+  },
+  "cross_960": {
+   "meta_sha256": "f1743ca5cbe3c31fe62c0dec853e969fd01c82f87a92fe2971ed6bd224f743ca",
+   "image_sha256": "0b393018c3641187112a6e452c128572d6bff6f6f73b4fadeabc8db1f1fdb534"
+  },
   "ghoul": {
-   "meta_sha256": "2be307795781b350c3f298c17b61a6cdfb5cc1bc330be4072d3cfb1b85e9d58b",
+   "meta_sha256": "2934de4b89240d63f82b2063978c963c6e0e5b3fa6a2d75a9c1ea4d4b29de6cb",
    "image_sha256": "5a8515af8b1117efeefcf570a9dc27b8120816eecd651c109404f9497e5841e7"
   },
   "ghoul_960": {
-   "meta_sha256": "4e934fde66f1b3fa04784265c37b3e3e2048fd07e5b1e583fdbca237a70a1eda",
+   "meta_sha256": "d2bc573c7b8de3a11098c11cd01c86865be9ce71e0d7e0f6a16549b88697f339",
    "image_sha256": "3fac82a0b55e5346033f7bdfe2f650ce93aef38fb89150b05dd9ef38b66633ea"
   },
   "lamplighter": {
-   "meta_sha256": "0aaf9a29d3bf18386cda4f758799baba48d3b1467f4afe44179afc24e243ec12",
+   "meta_sha256": "97b95c0b19a088340692186e84a3f61fdf201c9b2fdaa150f8419a6232aed471",
    "image_sha256": "69c63137da7fa3f4ea0f14eb234dfaf2ffe0b849a6058ddc38bb4fbbfc2be717"
   },
   "lamplighter_960": {
-   "meta_sha256": "703ce50245dd894b5621f79746b7cfc5fe6472e41570ad6f1b8578c105066e44",
+   "meta_sha256": "25373457f21e4c602f091144b68c5b6642d2241e002227ab49ab80017a0f2347",
    "image_sha256": "eb419b3ea3faf5a55c139f960ee11977f1bba639b5cea9550f2d2a1ba86eba63"
+  },
+  "pillar": {
+   "meta_sha256": "1caac13d47be932fff056f7f764ebafd0d59bf1f653d58b1476881f9bff6c1bd",
+   "image_sha256": "7c7b72f4e48ed0948b5ee6587d2a4c01cc86c6b0b9a152c286167850b53fd243"
+  },
+  "pillar_960": {
+   "meta_sha256": "732410368419f2df17f4c3f6ec1ed7638c4b7b228a7df18810496d17bdac6c22",
+   "image_sha256": "736e3ce8d7cd9ad4d2bee0b40ba3ae9ca183a505424c5fba8bc31cbeb7ea2b75"
+  },
+  "sarcophagus": {
+   "meta_sha256": "49d7ef7604524f6565f1160434f01a61ce570bdf339ffb50b1e37604aefee09f",
+   "image_sha256": "18ef3f7011386aba6405c3518bc9c963c0f7afcd11e00be58bc85cf58ba56c1d"
+  },
+  "sarcophagus_960": {
+   "meta_sha256": "18ccd23aabb2d4fd7ce401e915ea3986d2c22bdeb6df132443aadda961f4d29c",
+   "image_sha256": "c27b415736ed779bf2f01f7fb9f3f988c8257253dead0885f25e3e9e65ed9dcb"
+  },
+  "statue": {
+   "meta_sha256": "d1e64ddfe94570bd9bfb4681b967489a3b6449a14fc3f96efd3930a881ac1587",
+   "image_sha256": "1181f91402b12c8ce49b3e923b37dc6a3d311309f4d6a0ea1312d0dd74f685a0"
+  },
+  "statue_960": {
+   "meta_sha256": "c3635d35ed97d57a08cbbe75b33914ec67d432a58707fd0df76e94be9b1aa58e",
+   "image_sha256": "0df02d7ca2423e232d422e7fcd203569353a758661f85ff70a350fdf71842ffc"
+  },
+  "tomb": {
+   "meta_sha256": "4e9e5dee7cc1882e4c53f8d2f8cd12ee6609ecb682848a72153b7ff37adb54a3",
+   "image_sha256": "4c3d3c2be1321cb010db335b201b0c7ea181dcd8c916833aa713333bba44f4e3"
+  },
+  "tomb_960": {
+   "meta_sha256": "56e1cd34b7d435b7d4ad341958410e5ef9e72299cbba7e6cbe723f441c5053f7",
+   "image_sha256": "fef91ec1ce27aa4875250f653f7a0cdbc51d05e818fb4510ca54399140c510f1"
   }
  }
 }

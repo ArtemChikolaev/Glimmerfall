@@ -1,0 +1,68 @@
+{
+ "$schema": "../../schema/sprite-sheet.schema.json",
+ "id": "brazier_960",
+ "image": "brazier_960.png",
+ "grid": [
+  960,
+  540
+ ],
+ "cell": [
+  26,
+  41
+ ],
+ "columns": 1,
+ "anchor": [
+  13,
+  33
+ ],
+ "palette": "glimmerfall-master@0.1-draft",
+ "directions": {
+  "rendered": [
+   "S",
+   "SE",
+   "E",
+   "NE"
+  ],
+  "mirror": {}
+ },
+ "clips": {
+  "idle": {
+   "row": 0,
+   "frames": 1,
+   "fps": 1,
+   "loop": true,
+   "dirs": [
+    "S",
+    "SE",
+    "E",
+    "NE"
+   ]
+  }
+ },
+ "source": {
+  "kind": "procedural",
+  "class": "prop",
+  "model": "brazier",
+  "note": "жаровня на треноге с углями (пламя — эффект в игре)",
+  "scale": 1.5,
+  "target_px": 39.0,
+  "supersample": 4,
+  "pixels_per_meter": 39.0987,
+  "renderer": "Blender 5.2.1 LTS Cycles",
+  "pipeline": 1,
+  "style": {
+   "key_light": [
+    -0.5512693810472418,
+    0.6515001776012856,
+    0.5212001420810285
+   ],
+   "shadow_below": 0.3,
+   "highlight_above": 0.82,
+   "glow_core_above": 0.55,
+   "coverage": 0.5,
+   "line_depth_m": 0.1,
+   "despeckle_px": 2,
+   "outline": true
+  }
+ }
+}

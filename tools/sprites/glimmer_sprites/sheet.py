@@ -74,6 +74,7 @@ def pack(frames: build.Frames, sheet_id: str, palette: Palette, style: build.Sty
         "clips": clips,
         "source": {
             "kind": "procedural",
+            "class": manifest.get("class", "character"),
             "model": manifest["model"],
             "note": manifest["note"],
             "scale": manifest["scale"],
