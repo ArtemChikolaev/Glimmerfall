@@ -112,6 +112,8 @@ jobs:
       - run: dotnet build game/Glimmerfall.csproj
       - run: '"$GODOT" --headless --path game --import'
       - run: '"$GODOT" --headless --path game --fixed-fps 60 -- --smoke-frames 240'
+      - name: Menu flow (title → run → pause → run, choices in modals)
+        run: '"$GODOT" --headless --path game --fixed-fps 60 -- --smoke-flow 2400'
 
   # Каркас сервера (G1.7): go vet и тесты, включая интеграцию с настоящим .NET-валидатором (тот же Sim.dll).
   server:

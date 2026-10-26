@@ -6,29 +6,17 @@ namespace Glimmerfall.Game;
 
 /// <summary>
 /// Клавиатура, геймпад и тач → <see cref="InputFrame"/>. Всё, что делает игрок, идёт в сим только так — тот же путь,
-/// что у реплея и бота.
+/// что у реплея и бота. Выбор в модалке приходит из карточек интерфейса (<paramref name="pick"/>).
 /// </summary>
 public static class PlayerInput
 {
     private const float Deadzone = 0.2f;
 
-    public static InputFrame Read(World world, TouchControls touch)
+    public static InputFrame Read(World world, TouchControls touch, int pick)
     {
         if (world.Modal != ModalKind.None)
         {
-            int tapped = touch.TakePick();
-            if (tapped >= 0)
-            {
-                return InputFrame.Choose(tapped);
-            }
-            for (int k = 0; k < world.ModalOptionCount; k++)
-            {
-                if (Input.IsKeyPressed(Key.Key1 + k) || (k == 0 && Input.IsJoyButtonPressed(0, JoyButton.A)))
-                {
-                    return InputFrame.Choose(k);
-                }
-            }
-            return default;
+            return pick >= 0 ? InputFrame.Choose(pick) : default;
         }
         float x = Axis(Key.D, Key.Right) - Axis(Key.A, Key.Left);
         float y = Axis(Key.S, Key.Down) - Axis(Key.W, Key.Up);

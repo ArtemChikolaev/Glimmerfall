@@ -4,13 +4,16 @@ using System.Globalization;
 namespace Glimmerfall.Game;
 
 /// <summary>
-/// Пользовательские аргументы после «--»: <c>Glimmerfall.x86_64 -- --bench-seconds 60</c>.
-/// По умолчанию — спайк орды с автопилотом-кайтером; <c>--scenario run --manual</c> — играбельный акт;
-/// <c>--grid 960 --screenshot build/shot</c> — снимок сцены на другой сетке (G2.6).
+/// Пользовательские аргументы после «--». Без аргументов — игра: титульный экран, меню, забег.
+/// Служебные режимы идут мимо меню: <c>--bench-seconds 60</c> (замер кадра), <c>--smoke-frames 240</c> (CI),
+/// <c>--scenario horde</c> (спайк орды в окне), <c>--scenario run --manual</c> (сразу забег),
+/// <c>--grid 960 --screenshot build/shot</c> (снимок мира и маски силуэтов, G2.6);
+/// <c>--capture-ui PATH</c> — снимок окна с интерфейсом, <c>--smoke-flow N</c> — CI-проверка пути меню → забег → пауза.
 /// </summary>
 public sealed class SpikeOptions
 {
-    public string Scenario = "horde";
+    /// <summary>Пусто — игра с меню; «horde» — спайк орды; «run» — сразу забег.</summary>
+    public string Scenario = "";
     public int Enemies = 5000;
     public int Projectiles = 2000;
     public int Acts = 1;
@@ -28,8 +31,28 @@ public sealed class SpikeOptions
     public string? Screenshot;
     public int ScreenshotFrame = 600;
 
+    /// <summary>Снимок всего окна с интерфейсом (для отчётов): путь без расширения и кадр.</summary>
+    public string? CaptureUi;
+    public int CaptureFrame = 120;
+
+    /// <summary>Снять окно, когда откроется выбор благословения (автопилот играет до модалки).</summary>
+    public bool CaptureCards;
+
+    /// <summary>Перед снимком открыть экран: pause, settings или result — проверка раскладки.</summary>
+    public string? CaptureScreen;
+
+    /// <summary>Игра: сразу начать забег (мимо титула); с <see cref="RunAutopilot"/> — забег ведёт бот.</summary>
+    public bool Autostart;
+    public bool RunAutopilot;
+
+    /// <summary>Headless-проверка пути «титул → забег → пауза → забег» с выбором в модалках: кадров до вердикта.</summary>
+    public int SmokeFlowFrames;
+
     /// <summary>Замер закончился — выйти (ПК, CI) или оставить отчёт на экране для скриншота (телефон, Deck в игровом режиме).</summary>
     public bool QuitAfterBench = true;
+
+    /// <summary>Служебный режим мимо меню: замер, смоук, снимок мира или явный сценарий.</summary>
+    public bool Direct => BenchSeconds > 0 || SmokeFrames > 0 || Screenshot != null || Scenario.Length > 0;
 
     /// <summary>
     /// Сборка с тегом «bench» (пресеты «Android Bench», «iOS Bench») без аргументов сразу гонит замер: на телефоне
@@ -43,6 +66,7 @@ public sealed class SpikeOptions
             options.BenchSeconds = 60;
             options.Vsync = false;
             options.QuitAfterBench = false;
+            options.Scenario = "horde";
         }
         return options;
     }
@@ -70,12 +94,27 @@ public sealed class SpikeOptions
                 case "--grid": options.Grid = NextInt(); break;
                 case "--screenshot": options.Screenshot = Next(); break;
                 case "--screenshot-frame": options.ScreenshotFrame = NextInt(); break;
+                case "--capture-ui": options.CaptureUi = Next(); break;
+                case "--capture-frame": options.CaptureFrame = NextInt(); break;
+                case "--capture-cards": options.CaptureCards = true; break;
+                case "--capture-screen": options.CaptureScreen = Next(); break;
+                case "--autostart": options.Autostart = true; break;
+                case "--autopilot": options.RunAutopilot = true; break;
+                case "--smoke-flow": options.SmokeFlowFrames = NextInt(); break;
                 default: throw new ArgumentException($"unknown option {key}");
             }
         }
         if (options.Grid is not (640 or 960))
         {
             throw new ArgumentException("--grid: 640 или 960");
+        }
+        if (options.Scenario is not ("" or "horde" or "run"))
+        {
+            throw new ArgumentException("--scenario: horde или run");
+        }
+        if (options.Direct && options.Scenario.Length == 0)
+        {
+            options.Scenario = "horde";
         }
         if (options.BenchSeconds > 0)
         {

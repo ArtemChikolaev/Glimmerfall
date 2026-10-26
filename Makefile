@@ -8,7 +8,7 @@ CLI     := dotnet $(CLI_DLL)
 SIM     := $(CURDIR)/sim.cli/bin/Release/net10.0/glimmerfall-sim
 VENV    := .venv/.stamp
 SPRITES := PYTHONPATH=tools/sprites .venv/bin/python -m glimmer_sprites
-MODELS  ?= lamplighter ghoul brute
+MODELS  ?= lamplighter ghoul brute pillar tomb cross brazier statue sarcophagus
 
 POLICY  ?= kiter
 RUNS    ?= 36
@@ -21,7 +21,7 @@ ARGS    ?=
 KEYSTORE ?= $(HOME)/.android/debug.keystore
 
 .DEFAULT_GOAL := help
-.PHONY: help doctor build build-game cli import debug debug-act editor test smoke check \
+.PHONY: help doctor build build-game cli import debug debug-run debug-horde editor test smoke check \
 	bench bench-mac bot afk career digest golden \
 	venv palette sprites sprites-check \
 	export-deck export-mac export-android export-ios \
@@ -59,11 +59,14 @@ game/.godot/.import-stamp: $(GAME_ART)
 	$(GODOT) --headless --path game --import
 	@touch $@
 
-debug: build-game import ## спайк орды в окне из Debug-сборки: F1 — автопилот/ручное (ARGS="--enemies 2000")
+debug: build-game import ## игра: титульный экран, настройки, забег (WASD/стик, пробел — рывок, Q — смена, Esc — пауза)
 	$(GODOT) --path game -- $(ARGS)
 
-debug-act: build-game import ## играбельный акт вручную: WASD/стик, пробел — рывок, Q — свап, 1–3 — выбор
-	$(GODOT) --path game -- --scenario run --manual $(ARGS)
+debug-run: build-game import ## сразу забег мимо титула (ARGS="--autopilot" — забег ведёт бот)
+	$(GODOT) --path game -- --autostart $(ARGS)
+
+debug-horde: build-game import ## стресс-сцена орды: 5 тыс. врагов и спираль снарядов, F1 — автопилот/ручное
+	$(GODOT) --path game -- --scenario horde $(ARGS)
 
 editor: build-game import ## открыть проект в редакторе Godot
 	$(GODOT) --editor --path game
@@ -72,9 +75,10 @@ editor: build-game import ## открыть проект в редакторе G
 test: ## тесты сима (golden-реплеи, тест-запрет по IL, инварианты)
 	dotnet test --project sim.tests/Glimmerfall.Sim.Tests.csproj
 
-smoke: build-game ## headless-импорт и смоук сцены орды, как в CI
+smoke: build-game ## headless-импорт, смоук сцены орды и пути меню → забег → пауза, как в CI
 	$(GODOT) --headless --path game --import
 	$(GODOT) --headless --path game --fixed-fps 60 -- --smoke-frames 240
+	$(GODOT) --headless --path game --fixed-fps 60 -- --smoke-flow 2400
 
 check: build test smoke server-test sprites-check ## всё, что гоняет CI (кроме матрицы ОС и Docker), плюс скиллы и diff
 	python3 -m venv /tmp/glimmerfall-skill-check

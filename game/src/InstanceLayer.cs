@@ -59,6 +59,39 @@ public sealed class InstanceLayer
         _count++;
     }
 
+    /// <summary>Вытянутый экземпляр по направлению (dirX, dirY): снаряд, искра, шлейф.</summary>
+    public void AddOriented(float x, float y, float dirX, float dirY, float length, float width, Color color)
+    {
+        if (_count == _capacity)
+        {
+            Grow();
+        }
+        float norm = MathF.Sqrt(dirX * dirX + dirY * dirY);
+        if (norm < 1e-5f)
+        {
+            dirX = 1f;
+            dirY = 0f;
+            norm = 1f;
+        }
+        dirX /= norm;
+        dirY /= norm;
+        int o = _count * Stride;
+        float[] b = _buffer;
+        b[o] = dirX * length;
+        b[o + 1] = -dirY * width;
+        b[o + 2] = 0;
+        b[o + 3] = x;
+        b[o + 4] = dirY * length;
+        b[o + 5] = dirX * width;
+        b[o + 6] = 0;
+        b[o + 7] = y;
+        b[o + 8] = color.R;
+        b[o + 9] = color.G;
+        b[o + 10] = color.B;
+        b[o + 11] = color.A;
+        _count++;
+    }
+
     public void End()
     {
         RenderingServer.MultimeshSetBuffer(_multimesh.GetRid(), _buffer);
