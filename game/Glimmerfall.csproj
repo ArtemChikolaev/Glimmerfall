@@ -1,0 +1,12 @@
+<Project Sdk="Godot.NET.Sdk/4.7.2">
+  <!-- Презентация на Godot 4.7.2 .NET (ADR 0002): рендер, интерполяция, ввод, HUD. Правила игры — только в sim/. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <RootNamespace>Glimmerfall.Game</RootNamespace>
+    <AssemblyName>Glimmerfall</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../sim/Glimmerfall.Sim.csproj" />
+  </ItemGroup>
+</Project>

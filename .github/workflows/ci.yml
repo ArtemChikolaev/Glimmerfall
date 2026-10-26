@@ -10,17 +10,86 @@ permissions:
   contents: read
 
 # timeout-minutes — типичная длительность джоба с запасом: без потолка зависший шаг держит раннер до шести часов.
-# Джобы сборки сима и Godot добавляются вместе с кодом (BACKLOG G1.1).
 jobs:
   skills:
     name: Shared skills (metadata, links, adapters)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - run: python -m pip install -r .claude/skills/agent-skill-maintenance/tools/requirements.txt
       - run: python .claude/skills/agent-skill-maintenance/tools/validate_skills.py
       - run: python -m unittest discover -s .claude/skills/agent-skill-maintenance/tools -p 'test_*.py'
+
+  # Сим на трёх платформах (ADR 0002, скилл sim-determinism): тесты с golden-реплеями и набор дайджестов для сверки между ОС.
+  sim:
+    name: Sim (${{ matrix.label }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: Linux x64
+          - os: windows-latest
+            label: Windows x64
+          - os: macos-latest
+            label: macOS arm64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - run: dotnet build sim.cli/Glimmerfall.Sim.Cli.csproj -c Release
+      - run: dotnet test --project sim.tests/Glimmerfall.Sim.Tests.csproj -c Release
+      - name: Cross-OS digest suite
+        shell: bash
+        run: dotnet sim.cli/bin/Release/net10.0/glimmerfall-sim.dll digest --out "digests-${{ matrix.os }}.txt"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: digests-${{ matrix.os }}
+          path: digests-${{ matrix.os }}.txt
+
+  # Побайтовая сверка дайджестов трёх ОС — без доверия к закоммиченным golden.
+  determinism:
+    name: Digests match across OS
+    needs: sim
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: digests-*
+          merge-multiple: true
+      - run: |
+          cat digests-ubuntu-latest.txt
+          diff digests-ubuntu-latest.txt digests-windows-latest.txt
+          diff digests-ubuntu-latest.txt digests-macos-latest.txt
+
+  # Презентация: сборка C# игры, headless-импорт Godot и смоук сцены орды (кадры → тики → отрисовка, код выхода).
+  godot:
+    name: Godot (import, build, smoke)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - name: Pinned versions agree
+        run: |
+          version="$(tr -d '[:space:]' < .godot-version)"
+          grep -q "Sdk=\"Godot.NET.Sdk/${version%-stable}\"" game/Glimmerfall.csproj
+      - uses: actions/cache@v6
+        with:
+          path: ~/godot
+          key: godot-${{ hashFiles('.godot-version', 'tools/ci/install-godot.sh') }}
+      - name: Install Godot
+        run: echo "GODOT=$(tools/ci/install-godot.sh ~/godot)" >> "$GITHUB_ENV"
+      - run: dotnet build game/Glimmerfall.csproj
+      - run: '"$GODOT" --headless --path game --import'
+      - run: '"$GODOT" --headless --path game --fixed-fps 60 -- --smoke-frames 240'

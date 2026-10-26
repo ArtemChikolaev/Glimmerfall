@@ -1,0 +1,204 @@
+using System;
+using System.Globalization;
+using Glimmerfall.Sim;
+using Glimmerfall.Sim.Bots;
+using Glimmerfall.Sim.Content;
+using Glimmerfall.Sim.Determinism;
+using Glimmerfall.Sim.Input;
+using Godot;
+
+namespace Glimmerfall.Game;
+
+/// <summary>
+/// Корень спайка орды (BACKLOG G1.3). Сим шагает фиксированным тиком 60 Гц из аккумулятора кадра, рендер идёт на частоте
+/// дисплея с интерполяцией между тиками. Ввод — автопилот-кайтер из Sim.dll или игрок (F1 переключает).
+/// Режимы: --bench-seconds N (замер кадра и отчёт), --smoke-frames N (headless-проверка в CI, код выхода).
+/// </summary>
+public partial class Main : Node2D
+{
+    private const double TickSeconds = 1.0 / SimConstants.TicksPerSecond;
+    private const int MaxStepsPerFrame = 6;
+
+    private SpikeOptions _options = new();
+    private World _world = null!;
+    private IBotPolicy? _autopilot;
+    private WorldView _view = null!;
+    private Camera2D _camera = null!;
+    private Label _hud = null!;
+    private FrameStats _stats = new();
+    private FrameStats _hudStats = new();
+    private double _accumulator;
+    private double _elapsed;
+    private double _hudTimer;
+    private int _frames;
+    private bool _toggleHeld;
+    private bool _failed;
+    private Rid _viewport;
+
+    public override void _Ready()
+    {
+        try
+        {
+            _options = SpikeOptions.Parse(OS.GetCmdlineUserArgs());
+        }
+        catch (ArgumentException e)
+        {
+            GD.PrintErr(e.Message);
+            GetTree().Quit(2);
+            return;
+        }
+        SimConfig config = _options.Scenario == "run" ? SimConfig.Run(_options.Acts) : SimConfig.HordeBench(_options.Enemies, _options.Projectiles);
+        _world = new World(config, SeedHash.FromString(_options.Seed)) { CollectEvents = true };
+        _autopilot = _options.Autopilot ? new KiterPolicy() : null;
+
+        _view = new WorldView();
+        AddChild(_view);
+        _view.Init(_world);
+        _camera = new Camera2D();
+        AddChild(_camera);
+        _camera.MakeCurrent();
+        var layer = new CanvasLayer();
+        AddChild(layer);
+        _hud = new Label { Position = new Vector2(4, 2) };
+        _hud.AddThemeFontSizeOverride("font_size", 8);
+        _hud.AddThemeColorOverride("font_shadow_color", Colors.Black);
+        layer.AddChild(_hud);
+
+        _viewport = GetViewport().GetViewportRid();
+        RenderingServer.ViewportSetMeasureRenderTime(_viewport, true);
+        if (!_options.Vsync)
+        {
+            DisplayServer.WindowSetVsyncMode(DisplayServer.VSyncMode.Disabled);
+            Engine.MaxFps = 0;
+        }
+    }
+
+    public override void _Process(double delta)
+    {
+        if (_failed)
+        {
+            return;
+        }
+        try
+        {
+            Frame(delta);
+        }
+        catch (Exception e)
+        {
+            _failed = true;
+            GD.PrintErr($"spike failed: {e}");
+            GetTree().Quit(1);
+        }
+    }
+
+    private void Frame(double delta)
+    {
+        ulong frameStart = Time.GetTicksUsec();
+        HandleToggle();
+        _accumulator += Math.Min(delta, 0.25);
+        ulong simUs = 0;
+        int steps = 0;
+        while (_accumulator >= TickSeconds && steps < MaxStepsPerFrame)
+        {
+            InputFrame input = _autopilot?.Decide(_world) ?? PlayerInput.Read(_world);
+            ulong t0 = Time.GetTicksUsec();
+            _world.Step(input);
+            simUs += Time.GetTicksUsec() - t0;
+            _view.Consume(_world.Events);
+            _accumulator -= TickSeconds;
+            steps++;
+        }
+        if (steps == MaxStepsPerFrame)
+        {
+            _accumulator = 0;
+        }
+        float alpha = _world.Modal == ModalKind.None ? (float)(_accumulator / TickSeconds) : 1f;
+        _view.Render(alpha, (float)delta);
+        _camera.Position = _view.HeroPosition;
+        double scriptMs = (Time.GetTicksUsec() - frameStart) / 1000.0;
+
+        _frames++;
+        _elapsed += delta;
+        double gpu = RenderingServer.ViewportGetMeasuredRenderTimeGpu(_viewport);
+        double cpu = RenderingServer.ViewportGetMeasuredRenderTimeCpu(_viewport);
+        bool measuring = _options.BenchSeconds > 0 && _elapsed >= _options.WarmupSeconds;
+        if (measuring)
+        {
+            _stats.Record(delta * 1000.0, scriptMs, simUs / 1000.0, cpu, gpu, _world, _view.DrawnInstances);
+        }
+        _hudStats.Record(delta * 1000.0, scriptMs, simUs / 1000.0, cpu, gpu, _world, _view.DrawnInstances);
+        _hudTimer += delta;
+        if (_hudTimer >= 0.25)
+        {
+            UpdateHud();
+            _hudTimer = 0;
+            _hudStats = new FrameStats();
+        }
+        if (measuring && _elapsed >= _options.WarmupSeconds + _options.BenchSeconds)
+        {
+            FinishBench();
+        }
+        if (_options.SmokeFrames > 0 && _frames >= _options.SmokeFrames)
+        {
+            FinishSmoke();
+        }
+    }
+
+    private void HandleToggle()
+    {
+        bool held = Input.IsKeyPressed(Key.F1);
+        if (held && !_toggleHeld)
+        {
+            _autopilot = _autopilot == null ? new KiterPolicy() : null;
+        }
+        _toggleHeld = held;
+    }
+
+    private void UpdateHud()
+    {
+        Sim.Core.Squad s = _world.Squad;
+        HeroKind hero = _world.ActiveHero;
+        string modal = _world.Modal switch
+        {
+            ModalKind.Blessing => "  ВЫБОР: " + Options(k => ((Blessing)_world.ModalOption(k)).ToString()),
+            ModalKind.Checkpoint => "  ЧЕКПОИНТ: " + Options(k => ((CheckpointOption)_world.ModalOption(k)).ToString()),
+            _ => "",
+        };
+        _hud.Text = string.Format(CultureInfo.InvariantCulture,
+            "{0:0} fps · {1} · tick {2} · act {3} {4}:{5:00}\nenemies {6} · projectiles {7} · shots {8} · instances {9}\n{10} hp {11}/{12} · squad {13}/3 · lvl {14} · {15} · {16}{17}",
+            Engine.GetFramesPerSecond(), _hudStats.Compact(), _world.Tick, _world.ActIndex + 1,
+            _world.ActTick / 3600, _world.ActTick / 60 % 60, _world.Enemies.Count, _world.Projectiles.Count, _world.Shots.Count,
+            _view.DrawnInstances, hero.Name, s.Hp[s.Active], s.MaxHp[s.Active], s.AliveCount, _world.Level,
+            _autopilot == null ? "manual (F1 autopilot)" : "autopilot (F1 manual)", _world.Outcome == RunOutcome.InProgress ? "" : _world.Outcome.ToString(), modal);
+    }
+
+    private string Options(Func<int, string> name)
+    {
+        var parts = new string[_world.ModalOptionCount];
+        for (int k = 0; k < parts.Length; k++)
+        {
+            parts[k] = $"[{k + 1}] {name(k)}";
+        }
+        return string.Join("  ", parts);
+    }
+
+    private void FinishBench()
+    {
+        string report = _stats.Report(_options);
+        GD.Print(report);
+        string name = $"user://bench-{_options.Scenario}-{DateTime.UtcNow:yyyyMMdd-HHmmss}.txt";
+        using (FileAccess file = FileAccess.Open(name, FileAccess.ModeFlags.Write))
+        {
+            file?.StoreString(report);
+        }
+        GD.Print($"bench report saved to {ProjectSettings.GlobalizePath(name)}");
+        GetTree().Quit(0);
+    }
+
+    private void FinishSmoke()
+    {
+        bool ok = _world.Tick > 0 && _world.Enemies.Count > 0 && _view.DrawnInstances > 0 && _world.Outcome == RunOutcome.InProgress;
+        GD.Print($"smoke {(ok ? "ok" : "FAILED")}: frames {_frames} · ticks {_world.Tick} · enemies {_world.Enemies.Count} · projectiles {_world.Projectiles.Count} · instances {_view.DrawnInstances} · digest {_world.ComputeDigest():x16}");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+}
