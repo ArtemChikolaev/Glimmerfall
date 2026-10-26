@@ -41,7 +41,7 @@
 - «Что ещё добавить?» без «сделай» — запрос на список вариантов, а не на реализацию.
 
 ## Перед «готово»
-Скилл `self-review-checklist`. Проверки соразмерны изменению: docs и скиллы — валидатор скиллов и `git diff --check`; C# — `dotnet build Glimmerfall.slnx` и `dotnet test --project sim.tests/Glimmerfall.Sim.Tests.csproj`; Godot — `tools/godot.sh --headless --path game --import` и смоук `tools/godot.sh --headless --path game --fixed-fps 60 -- --smoke-frames 240`; Go — `go vet ./...` и `go test ./...` в `server/`; изменения сима — golden-реплеи и `glimmerfall-sim digest`. Перф Godot меряй на экспорте: из редактора сим идёт в Debug.
+Скилл `self-review-checklist`. Проверки соразмерны изменению — цели `Makefile` (`make` печатает список): docs и скиллы — валидатор скиллов и `git diff --check`; C# — `make build` и `make test`; Godot — `make smoke` (headless-импорт и смоук сцены); Go — `make server-test`; всё сразу, как CI, — `make check`; изменения сима — golden-реплеи (`make golden` только осознанно) и `make digest`. Перф Godot меряй на экспорте: из редактора и `make debug` сим идёт в Debug.
 
 ## Сравнение с референсами
 «Сравни с Death Must Die / Halls of Torment / Dead Cells», «чего не хватает», «как у них сделано» → скилл `reference-parity-audit`: поведение и ощущение, а не копирование; недоступное помечай `unknown`.

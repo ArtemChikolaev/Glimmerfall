@@ -1,0 +1,141 @@
+# Частые команды Glimmerfall (по образцу aegis-draft). `make` без цели печатает список.
+# Godot запускается через tools/godot.sh: закреплённая версия из .godot-version или путь из $GODOT.
+# Переменные можно переопределить: make bot POLICY=afk RUNS=120 ACTS=1 TIER=2 SEED=base
+
+GODOT   := tools/godot.sh
+CLI_DLL := sim.cli/bin/Release/net10.0/glimmerfall-sim.dll
+CLI     := dotnet $(CLI_DLL)
+SIM     := $(CURDIR)/sim.cli/bin/Release/net10.0/glimmerfall-sim
+
+POLICY  ?= kiter
+RUNS    ?= 36
+ACTS    ?= 3
+TIER    ?= 0
+SEED    ?= make
+SECONDS ?= 60
+ARGS    ?=
+# Android-сборки подписываются стандартным debug-ключом Android Studio (пароль android — общеизвестный, не секрет).
+KEYSTORE ?= $(HOME)/.android/debug.keystore
+
+.DEFAULT_GOAL := help
+.PHONY: help doctor build build-game cli import debug debug-act editor test smoke check \
+	bench bench-mac bot afk career digest golden \
+	export-deck export-mac export-android export-ios \
+	server server-test validator-image clean
+
+help: ## этот список
+	@awk 'BEGIN {FS = ":.*## "} /^## / {printf "\n%s\n", substr($$0, 4)} /^[a-z][a-z-]*:.*## / {printf "  make %-16s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@echo ""
+	@echo "Переменные: POLICY=$(POLICY) RUNS=$(RUNS) ACTS=$(ACTS) TIER=$(TIER) SEED=$(SEED) SECONDS=$(SECONDS) ARGS=\"$(ARGS)\""
+
+## Разработка
+doctor: ## версии инструментов и сверка пинов (.NET, Godot, Go)
+	@echo ".NET SDK:   $$(dotnet --version)  (global.json: 10.0.4xx)"
+	@echo "Godot:      $$($(GODOT) --version 2>/dev/null || echo 'не найден')  (.godot-version: $$(cat .godot-version))"
+	@echo "Go:         $$(go version 2>/dev/null || echo 'не найден')"
+	@echo "Docker:     $$(docker --version 2>/dev/null || echo 'не найден')"
+	@v="$$(tr -d '[:space:]' < .godot-version)"; grep -q "Sdk=\"Godot.NET.Sdk/$${v%-stable}\"" game/Glimmerfall.csproj \
+		&& echo "Пины Godot совпадают с game/Glimmerfall.csproj" || (echo "Пин Godot расходится с game/Glimmerfall.csproj" && exit 1)
+
+build: ## собрать все C#-проекты (Debug)
+	dotnet build Glimmerfall.slnx
+
+build-game: ## собрать C# игры для запуска из Godot (Debug)
+	dotnet build game/Glimmerfall.csproj
+
+cli: ## собрать glimmerfall-sim (Release) — бенч, бот, реплеи, валидатор
+	dotnet build sim.cli/Glimmerfall.Sim.Cli.csproj -c Release
+
+# Импорт ресурсов Godot — только когда кэша ещё нет (свежий клон или после make clean), как штамп зависимостей в aegis-draft.
+import: ## headless-импорт ресурсов Godot, если кэша ещё нет
+	@if [ ! -d game/.godot/imported ]; then $(GODOT) --headless --path game --import; fi
+
+debug: build-game import ## спайк орды в окне из Debug-сборки: F1 — автопилот/ручное (ARGS="--enemies 2000")
+	$(GODOT) --path game -- $(ARGS)
+
+debug-act: build-game import ## играбельный акт вручную: WASD/стик, пробел — рывок, Q — свап, 1–3 — выбор
+	$(GODOT) --path game -- --scenario run --manual $(ARGS)
+
+editor: build-game import ## открыть проект в редакторе Godot
+	$(GODOT) --editor --path game
+
+## Проверки
+test: ## тесты сима (golden-реплеи, тест-запрет по IL, инварианты)
+	dotnet test --project sim.tests/Glimmerfall.Sim.Tests.csproj
+
+smoke: build-game ## headless-импорт и смоук сцены орды, как в CI
+	$(GODOT) --headless --path game --import
+	$(GODOT) --headless --path game --fixed-fps 60 -- --smoke-frames 240
+
+check: build test smoke server-test ## всё, что гоняет CI (кроме матрицы ОС и Docker), плюс скиллы и diff
+	python3 -m venv /tmp/glimmerfall-skill-check
+	/tmp/glimmerfall-skill-check/bin/pip install -q -r .claude/skills/agent-skill-maintenance/tools/requirements.txt
+	/tmp/glimmerfall-skill-check/bin/python .claude/skills/agent-skill-maintenance/tools/validate_skills.py
+	/tmp/glimmerfall-skill-check/bin/python -m unittest discover -s .claude/skills/agent-skill-maintenance/tools -p 'test_*.py'
+	git diff --check
+
+## Харнесс и замеры
+bench: cli ## бенч тиков сима: 5 тыс. врагов и 2 тыс. снарядов, дайджест в конце
+	$(CLI) bench
+
+bench-mac: export-mac ## замер кадра на Release-экспорте macOS (SECONDS=60; из редактора сим в Debug — не мерить)
+	build/macos/Glimmerfall.app/Contents/MacOS/Glimmerfall -- --bench-seconds $(SECONDS) $(ARGS)
+
+bot: cli ## бот-прогоны: POLICY=kiter|afk|afk-after:120 RUNS ACTS TIER SEED — статистика по актам
+	$(CLI) bot --policy $(POLICY) --runs $(RUNS) --acts $(ACTS) --tier $(TIER) --seed $(SEED)
+
+afk: cli ## гейт угрозы: AFK и «AFK со 2-й минуты» на первом акте
+	$(CLI) bot --policy afk --runs $(RUNS) --acts 1 --seed $(SEED)-afk
+	$(CLI) bot --policy afk-after:120 --runs $(RUNS) --acts 1 --seed $(SEED)-afk120
+
+career: cli ## карьера: забеги подряд с переносом меты (RUNS ACTS SEED)
+	$(CLI) career --runs $(RUNS) --acts $(ACTS) --seed $(SEED)
+
+digest: cli ## набор дайджестов для сверки ОС (как джоб CI determinism)
+	$(CLI) digest
+
+golden: ## перезаписать golden-реплеи — только осознанно, после бампа SimVersion.Balance
+	bash sim.tests/golden/regenerate.sh
+
+## Сборки для устройств
+export-deck: build-game ## Linux x86_64 для Steam Deck → build/glimmerfall-steamdeck-spike.zip
+	rm -rf build/steamdeck/Glimmerfall.x86_64 build/steamdeck/Glimmerfall.pck build/steamdeck/data_Glimmerfall_linuxbsd_x86_64
+	mkdir -p build/steamdeck
+	$(GODOT) --headless --path game --export-release SteamDeck ../build/steamdeck/Glimmerfall.x86_64
+	printf '%s\n' '#!/usr/bin/env bash' 'cd "$$(dirname "$$0")"' './Glimmerfall.x86_64 --fullscreen -- --bench-seconds 60 --warmup-seconds 5 "$$@"' > build/steamdeck/run-bench.sh
+	chmod +x build/steamdeck/run-bench.sh
+	cd build && rm -f glimmerfall-steamdeck-spike.zip && zip -qr -y glimmerfall-steamdeck-spike.zip steamdeck
+	@echo "Готово: build/glimmerfall-steamdeck-spike.zip — инструкция в docs/spikes/G1.3-horde.md"
+
+export-mac: build-game ## macOS (universal) → build/macos/Glimmerfall.app
+	rm -rf build/macos/Glimmerfall.app
+	mkdir -p build/macos
+	$(GODOT) --headless --path game --export-release macOS ../build/macos/Glimmerfall.app
+
+export-android: build-game ## APK с автозамером (тег bench) → build/android/glimmerfall-spike.apk
+	mkdir -p build/android
+	GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$(KEYSTORE)" GODOT_ANDROID_KEYSTORE_RELEASE_USER=androiddebugkey GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=android \
+		$(GODOT) --headless --path game --export-release "Android Bench" ../build/android/glimmerfall-spike.apk
+	@echo "Готово: build/android/glimmerfall-spike.apk — установить: adb install -r build/android/glimmerfall-spike.apk"
+
+export-ios: build-game ## Xcode-проект с NativeAOT → build/ios (нужен application/app_store_team_id в пресете iOS Bench)
+	@if grep -q '^application/app_store_team_id=""' game/export_presets.cfg; then \
+		echo "Впиши свой Team ID в game/export_presets.cfg → [preset.3.options] application/app_store_team_id (Xcode → Settings → Accounts)"; exit 1; fi
+	mkdir -p build/ios
+	$(GODOT) --headless --path game --export-release "iOS Bench" ../build/ios/Glimmerfall.ipa
+	@echo "Готово: открой build/ios/Glimmerfall.xcodeproj в Xcode и запусти на iPhone"
+
+## Сервер
+server: cli ## Go-сервер на :8080 с локальным валидатором (тот же Sim.dll)
+	cd server && VALIDATOR_CMD="$(SIM) verify --json -" go run ./cmd/api
+
+server-test: cli ## gofmt, vet и тесты сервера с настоящим валидатором
+	cd server && test -z "$$(gofmt -l .)" && go vet ./... && GLIMMERFALL_SIM="$(SIM)" go test ./...
+
+validator-image: ## Docker-образ валидатора (скачает базовые образы .NET ~1 ГБ при первой сборке)
+	docker build -f validator/Dockerfile -t glimmerfall-validator .
+	docker run --rm -i glimmerfall-validator < sim.tests/golden/kiter-short-act.gfr
+
+## Уборка
+clean: ## удалить сборки: bin/obj, build/, кэш импорта Godot
+	rm -rf sim/bin sim/obj sim.tests/bin sim.tests/obj sim.cli/bin sim.cli/obj build game/.godot

@@ -23,33 +23,19 @@
 
 Окружение и пины версий — [G1.0](docs/spikes/G1.0-environment.md): .NET SDK 10.0.4xx (`global.json`), Godot 4.7.2 .NET (`.godot-version`), Go 1.26.
 
-## Проверки
-Из корня репозитория:
+## Команды
+Частые команды — в `Makefile`; `make` без цели печатает список с пояснениями.
 
 ```bash
-dotnet build Glimmerfall.slnx
-dotnet test --project sim.tests/Glimmerfall.Sim.Tests.csproj
-tools/godot.sh --headless --path game --import
-tools/godot.sh --headless --path game --fixed-fps 60 -- --smoke-frames 240
-(cd server && go vet ./... && go test ./...)
+make debug        # спайк орды в окне (Debug-сборка C#): F1 — автопилот или ручное управление
+make debug-act    # играбельный акт вручную: WASD или стик, пробел — рывок, Q — свап, 1–3 — выбор
+make check        # всё, что гоняет CI: сборка, тесты сима, смоук Godot, тесты сервера, скиллы, git diff --check
+make bot POLICY=kiter RUNS=36 ACTS=3 TIER=0   # бот-прогоны со статистикой по актам
+make bench        # бенч тиков сима: 5 тыс. врагов и 2 тыс. снарядов
+make export-deck  # сборка для Steam Deck → build/glimmerfall-steamdeck-spike.zip
 ```
 
-Скиллы и документы — валидатором:
-
-```bash
-python3 -m venv /tmp/glimmerfall-skill-check
-/tmp/glimmerfall-skill-check/bin/pip install -r .claude/skills/agent-skill-maintenance/tools/requirements.txt
-/tmp/glimmerfall-skill-check/bin/python .claude/skills/agent-skill-maintenance/tools/validate_skills.py
-```
-
-## Харнесс и спайк орды
-```bash
-dotnet build sim.cli/Glimmerfall.Sim.Cli.csproj -c Release
-sim.cli/bin/Release/net10.0/glimmerfall-sim bench
-sim.cli/bin/Release/net10.0/glimmerfall-sim bot --policy kiter --runs 36 --acts 3
-tools/godot.sh --path game
-```
-В окне спайка F1 переключает автопилот и ручное управление (WASD или стик, пробел — рывок, Q — свап, 1–3 — выбор). Играбельный акт вместо орды: `tools/godot.sh --path game -- --scenario run --manual`.
+Перф меряется только на экспорте (`make bench-mac`, сборки для Deck и телефонов): из редактора и `make debug` сим идёт в Debug.
 
 ## Права
 © 2026 Artem Chikolaev. Все права защищены. Коммерческий проект с оригинальной IP; сторонние ассеты допускаются только по лицензии, разрешающей коммерческое использование без share-alike.
