@@ -77,6 +77,9 @@ public abstract class SlotPool
     /// </summary>
     public int Handle(int slot) => slot | ((Generation[slot] & 0x7FFF) << 16);
 
+    /// <summary>Слот хендла (без проверки живости — сперва <see cref="IsLive"/>).</summary>
+    public static int SlotOf(int handle) => handle & 0xFFFF;
+
     public bool IsLive(int handle)
     {
         if (handle < 0)

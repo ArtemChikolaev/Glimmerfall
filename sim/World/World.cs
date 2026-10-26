@@ -160,11 +160,15 @@ public sealed partial class World
         System.Array.Copy(Gems.Y, Gems.PrevY, Gems.HighWater);
     }
 
-    private void Emit(SimEventType type, Fix x, Fix y, int kind, int amount = 0)
+    private void Emit(SimEventType type, Fix x, Fix y, int kind, int amount = 0, Fix dirX = default, Fix dirY = default,
+        bool crit = false, int target = -1, int source = -1)
     {
         if (CollectEvents)
         {
-            Events.Add(new SimEvent { Type = type, X = x, Y = y, Kind = kind, Amount = amount });
+            Events.Add(new SimEvent
+            {
+                Type = type, X = x, Y = y, Kind = kind, Amount = amount, DirX = dirX, DirY = dirY, Crit = crit, Target = target, Source = source,
+            });
         }
     }
 

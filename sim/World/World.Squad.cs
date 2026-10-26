@@ -230,6 +230,7 @@ public sealed partial class World
                 s.SpinAngle += FixMath.FullTurn / (2 * count);
                 break;
         }
+        Emit(SimEventType.HeroAttack, s.X, s.Y, kind.Id, count, FixMath.Cos(baseAngle), FixMath.Sin(baseAngle));
         s.AttackCooldown[a] = Rules.AttackInterval(kind, BlessingLevels[(int)Blessing.Haste]);
     }
 

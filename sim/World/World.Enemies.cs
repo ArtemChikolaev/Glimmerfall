@@ -489,19 +489,21 @@ public sealed partial class World
     }
 
     /// <summary>Урон врагу; смерть снимает Alive сразу (по нему больше не попадут), а слот освобождается в конце тика.</summary>
-    private void DamageEnemy(int slot, int damage)
+    /// <summary>Урон врагу; направление, крит и источник идут только в событие для презентации.</summary>
+    private void DamageEnemy(int slot, int damage, Fix dirX, Fix dirY, bool crit, int sourceHero)
     {
         EnemyPool e = Enemies;
         e.Hp[slot] -= damage;
         e.HitFlash[slot] = 6;
         Stats.Acts[ActIndex].DamageDealt += damage;
+        int handle = e.Handle(slot);
         if (e.Hp[slot] > 0)
         {
-            Emit(SimEventType.EnemyHit, e.X[slot], e.Y[slot], e.Kind[slot], damage);
+            Emit(SimEventType.EnemyHit, e.X[slot], e.Y[slot], e.Kind[slot], damage, dirX, dirY, crit, handle, sourceHero);
             return;
         }
         e.Alive[slot] = false;
         _deadEnemies.Add(slot);
-        Emit(SimEventType.EnemyKilled, e.X[slot], e.Y[slot], e.Kind[slot], damage);
+        Emit(SimEventType.EnemyKilled, e.X[slot], e.Y[slot], e.Kind[slot], damage, dirX, dirY, crit, handle, sourceHero);
     }
 }

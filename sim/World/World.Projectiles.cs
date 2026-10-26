@@ -65,12 +65,13 @@ public sealed partial class World
                 continue;
             }
             int damage = p.Damage[i];
-            if (Rng[RngStream.Combat].Chance(Fix.Ratio(Rules.CritPercent, 100)))
+            bool crit = Rng[RngStream.Combat].Chance(Fix.Ratio(Rules.CritPercent, 100));
+            if (crit)
             {
                 damage *= 2;
             }
             p.LastHit[i] = e.Handle(hit);
-            DamageEnemy(hit, damage);
+            DamageEnemy(hit, damage, p.VX[i], p.VY[i], crit, p.HeroKind[i]);
             if (--p.Pierce[i] <= 0)
             {
                 p.Release(i);
