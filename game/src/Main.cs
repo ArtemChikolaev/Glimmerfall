@@ -25,6 +25,7 @@ public partial class Main : Node2D
     private WorldView _view = null!;
     private Camera2D _camera = null!;
     private Label _hud = null!;
+    private TouchControls _touch = null!;
     private FrameStats _stats = new();
     private FrameStats _hudStats = new();
     private double _accumulator;
@@ -65,6 +66,8 @@ public partial class Main : Node2D
         _hud.AddThemeFontSizeOverride("font_size", 8);
         _hud.AddThemeColorOverride("font_shadow_color", Colors.Black);
         layer.AddChild(_hud);
+        _touch = new TouchControls();
+        layer.AddChild(_touch);
 
         _viewport = GetViewport().GetViewportRid();
         RenderingServer.ViewportSetMeasureRenderTime(_viewport, true);
@@ -100,9 +103,10 @@ public partial class Main : Node2D
         _accumulator += Math.Min(delta, 0.25);
         ulong simUs = 0;
         int steps = 0;
+        _touch.SetModal(_autopilot == null && _world.Modal != ModalKind.None ? _world.ModalOptionCount : 0);
         while (_accumulator >= TickSeconds && steps < MaxStepsPerFrame)
         {
-            InputFrame input = _autopilot?.Decide(_world) ?? PlayerInput.Read(_world);
+            InputFrame input = _autopilot?.Decide(_world) ?? PlayerInput.Read(_world, _touch);
             ulong t0 = Time.GetTicksUsec();
             _world.Step(input);
             simUs += Time.GetTicksUsec() - t0;
@@ -149,7 +153,7 @@ public partial class Main : Node2D
     private void HandleToggle()
     {
         bool held = Input.IsKeyPressed(Key.F1);
-        if (held && !_toggleHeld)
+        if ((held && !_toggleHeld) || _touch.TakeAutopilotToggle())
         {
             _autopilot = _autopilot == null ? new KiterPolicy() : null;
         }
