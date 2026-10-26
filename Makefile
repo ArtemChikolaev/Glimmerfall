@@ -80,7 +80,7 @@ smoke: build-game ## headless-импорт, смоук сцены орды и п
 	$(GODOT) --headless --path game --fixed-fps 60 -- --smoke-frames 240
 	$(GODOT) --headless --path game --fixed-fps 60 -- --smoke-flow 2400
 
-check: build test smoke server-test sprites-check ## всё, что гоняет CI (кроме матрицы ОС и Docker), плюс скиллы и diff
+check: build test afk smoke server-test sprites-check ## всё, что гоняет CI (кроме матрицы ОС и Docker), плюс скиллы и diff
 	python3 -m venv /tmp/glimmerfall-skill-check
 	/tmp/glimmerfall-skill-check/bin/pip install -q -r .claude/skills/agent-skill-maintenance/tools/requirements.txt
 	/tmp/glimmerfall-skill-check/bin/python .claude/skills/agent-skill-maintenance/tools/validate_skills.py
@@ -97,9 +97,9 @@ bench-mac: export-mac ## замер кадра на Release-экспорте mac
 bot: cli ## бот-прогоны: POLICY=kiter|afk|afk-after:120 RUNS ACTS TIER SEED — статистика по актам
 	$(CLI) bot --policy $(POLICY) --runs $(RUNS) --acts $(ACTS) --tier $(TIER) --seed $(SEED)
 
-afk: cli ## гейт угрозы: AFK и «AFK со 2-й минуты» на первом акте
-	$(CLI) bot --policy afk --runs $(RUNS) --acts 1 --seed $(SEED)-afk
-	$(CLI) bot --policy afk-after:120 --runs $(RUNS) --acts 1 --seed $(SEED)-afk120
+afk: cli ## гейт угрозы (CI): AFK гибнет в акте 1, медиана ≤ 90 с; «AFK со 2-й минуты» — ≤ 20 с после остановки
+	$(CLI) bot --policy afk --runs $(RUNS) --acts 1 --seed $(SEED)-afk --gate-wipe-p50 90
+	$(CLI) bot --policy afk-after:120 --runs $(RUNS) --acts 1 --seed $(SEED)-afk120 --gate-wipe-p50 140
 
 career: cli ## карьера: забеги подряд с переносом меты (RUNS ACTS SEED)
 	$(CLI) career --runs $(RUNS) --acts $(ACTS) --seed $(SEED)

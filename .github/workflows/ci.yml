@@ -65,6 +65,10 @@ jobs:
           global-json-file: global.json
       - run: dotnet build sim.cli/Glimmerfall.Sim.Cli.csproj -c Release
       - run: dotnet test --project sim.tests/Glimmerfall.Sim.Tests.csproj -c Release
+      # Столп «угроза»: стоять AFK — смерть в первом акте. Сим детерминирован, хватает одной ОС.
+      - name: AFK threat gate
+        if: runner.os == 'Linux'
+        run: make afk
       - name: Cross-OS digest suite
         shell: bash
         run: dotnet sim.cli/bin/Release/net10.0/glimmerfall-sim.dll digest --out "digests-${{ matrix.os }}.txt"

@@ -56,6 +56,7 @@ public static class BotCommand
         string dump = args.Get("dump", "");
         bool verbose = args.Has("verbose");
         int trace = args.GetInt("trace", -1);
+        int gateWipe = args.GetInt("gate-wipe-p50", -1);
         args.EnsureAllUsed();
         RunSetup.BuildPolicy(policyName);
         if (trace >= 0)
@@ -87,7 +88,23 @@ public static class BotCommand
             File.WriteAllText(dump, JsonSerializer.Serialize(records, new JsonSerializerOptions { WriteIndented = true }));
             Console.WriteLine($"json → {dump}");
         }
-        return 0;
+        return gateWipe >= 0 ? WipeGate(records, gateWipe) : 0;
+    }
+
+    /// <summary>
+    /// Гейт угрозы (столп 2, скилл balance-harness): каждый прогон гибнет в первом акте, медиана гибели — не позже порога.
+    /// Для AFK-политик: стоять нельзя уже на первой минуте. Медиана — та же, что в отчёте.
+    /// </summary>
+    private static int WipeGate(RunRecord[] records, int seconds)
+    {
+        var wipes = records.Where(r => r.Acts.Count > 0 && r.Acts[0].WipeSecond >= 0).Select(r => (double)r.Acts[0].WipeSecond).ToList();
+        int survivors = records.Length - wipes.Count;
+        double median = wipes.Count > 0 ? Stats.Quantile(wipes, 0.5) : -1;
+        bool ok = records.Length > 0 && survivors == 0 && median <= seconds;
+        Console.WriteLine(ok
+            ? $"gate ok: all {records.Length} runs wiped in act 1, wipe p50 {Sec(median)} ≤ {seconds} s"
+            : $"GATE FAILED: act 1 survivors {survivors}/{records.Length}, wipe p50 {(median < 0 ? "—" : Sec(median))}, limit {seconds} s");
+        return ok ? 0 : 1;
     }
 
     /// <summary>Посекундная трасса одного прогона: здоровье, враги рядом, босс, модалки — для отладки политики бота.</summary>
