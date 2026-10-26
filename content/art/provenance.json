@@ -98,7 +98,7 @@
    "date": "2026-10-26",
    "ai": true,
    "placeholder": true,
-   "note": "заглушка прототипа, не арт: тестовый герой-фонарщик: капюшон, плащ, фонарь, клинок"
+   "note": "заглушка прототипа, не арт: тестовый герой-фонарщик (огонь): капюшон, плащ, фонарь, клинок"
   },
   {
    "path": "game/art/sprites/lamplighter_960.png",
@@ -109,7 +109,7 @@
    "date": "2026-10-26",
    "ai": true,
    "placeholder": true,
-   "note": "заглушка прототипа, не арт: тестовый герой-фонарщик: капюшон, плащ, фонарь, клинок"
+   "note": "заглушка прототипа, не арт: тестовый герой-фонарщик (огонь): капюшон, плащ, фонарь, клинок"
   },
   {
    "path": "game/art/sprites/pillar.png",
@@ -156,6 +156,28 @@
    "note": "заглушка прототипа, не арт: саркофаг со сдвинутой крышкой"
   },
   {
+   "path": "game/art/sprites/sparkwright.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «sparkwright» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-26",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: тестовый герой-искровед (молния): шляпа, очки, ранец с катушками, посох"
+  },
+  {
+   "path": "game/art/sprites/sparkwright_960.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «sparkwright» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-26",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: тестовый герой-искровед (молния): шляпа, очки, ранец с катушками, посох"
+  },
+  {
    "path": "game/art/sprites/statue.png",
    "kind": "sprite-sheet",
    "source": "процедурный манекен «statue» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
@@ -198,6 +220,28 @@
    "ai": true,
    "placeholder": true,
    "note": "заглушка прототипа, не арт: надгробие"
+  },
+  {
+   "path": "game/art/sprites/warden.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «warden» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-26",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: тестовый герой-страж (мороз): латы, шлем, башенный щит, копьё"
+  },
+  {
+   "path": "game/art/sprites/warden_960.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «warden» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-26",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: тестовый герой-страж (мороз): латы, шлем, башенный щит, копьё"
   },
   {
    "path": "game/icon.svg",

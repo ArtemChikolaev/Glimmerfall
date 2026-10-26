@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -119,20 +120,26 @@ def load_index() -> dict:
     return json.loads(INDEX_PATH.read_text(encoding="utf-8"))
 
 
+def sources_fingerprint() -> str:
+    """Один хэш на все исходники конвейера: лист запоминает, из какого их состояния собран."""
+    joined = "\n".join(f"{path} {digest}" for path, digest in sources_digest().items())
+    return hashlib.sha256(joined.encode("utf-8")).hexdigest()
+
+
 def update_index(sheet_ids: list[str]) -> dict:
-    """Записывает хэши листов и исходников. Листы не из этого прогона тоже перехэшируются: исходники общие."""
+    """Записывает хэши только что собранных листов и отпечаток исходников, из которых они собраны.
+    Остальные листы сохраняют свой отпечаток: сборка одного листа не делает свежими чужие."""
     index = load_index()
     index["pipeline"] = build.PIPELINE_VERSION
     index["sources"] = sources_digest()
+    fingerprint = sources_fingerprint()
     for sheet_id in sheet_ids:
-        index["sheets"][sheet_id] = {}
-    for sheet_id in sorted(index["sheets"]):
         meta_path = build.SPRITES_META_DIR / f"{sheet_id}.json"
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
-        image_path = build.SPRITES_IMAGE_DIR / meta["image"]
         index["sheets"][sheet_id] = {
             "meta_sha256": build.sha256(meta_path),
-            "image_sha256": build.sha256(image_path),
+            "image_sha256": build.sha256(build.SPRITES_IMAGE_DIR / meta["image"]),
+            "sources": fingerprint,
         }
     index["sheets"] = dict(sorted(index["sheets"].items()))
     INDEX_PATH.write_text(json.dumps(index, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
@@ -146,11 +153,12 @@ def freshness_problems() -> list[str]:
     if index.get("pipeline") != build.PIPELINE_VERSION:
         out.append(f"версия конвейера в индексе {index.get('pipeline')} ≠ {build.PIPELINE_VERSION}")
     current = sources_digest()
-    for path, digest in current.items():
-        if index["sources"].get(path) != digest:
-            out.append(f"исходник {path} изменён после сборки листов — нужен make sprites")
-    for path in set(index["sources"]) - set(current):
-        out.append(f"в индексе лишний исходник {path}")
+    changed = [path for path, digest in current.items() if index["sources"].get(path) != digest]
+    out.extend(f"исходник {path} изменён после последней сборки — нужен make sprites" for path in changed)
+    fingerprint = sources_fingerprint()
+    stale = sorted(sheet_id for sheet_id, entry in index["sheets"].items() if entry.get("sources") != fingerprint)
+    if stale:
+        out.append(f"листы собраны из старых исходников: {', '.join(stale)} — нужен make sprites")
     metas = {p.stem for p in build.SPRITES_META_DIR.glob("*.json") if p.name != "index.json"}
     images = {p.stem for p in build.SPRITES_IMAGE_DIR.glob("*.png")}
     for sheet_id, entry in index["sheets"].items():

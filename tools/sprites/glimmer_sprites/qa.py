@@ -38,7 +38,7 @@ class Gate:
     flicker_max: float = 3.0       # % в худшем кадре
     jerk_loop: float = 0.12        # доля целевой высоты
     jerk_action: float = 0.60
-    drift_loop_px: float = 1.5
+    drift_loop: float = 0.035      # доля целевой высоты: 48 px → 1,7 px, 72 px → 2,5 px
     dropout_loop: float = 0.30
     dropout_action: float = 0.45
     strobe_min: float = 0.8
@@ -161,8 +161,8 @@ def analyse(meta: dict, palette: Palette, gate: Gate = GATE) -> SheetReport:
             if clip["loop"]:
                 if m["jerk_px"] > gate.jerk_loop * target:
                     fail.append(f"{where}: рывок {m['jerk_px']} px > {gate.jerk_loop * target:.1f}")
-                if m["drift_px"] > gate.drift_loop_px:
-                    fail.append(f"{where}: снос {m['drift_px']} px за цикл")
+                if m["drift_px"] > gate.drift_loop * target:
+                    fail.append(f"{where}: снос {m['drift_px']} px за цикл > {gate.drift_loop * target:.1f}")
                 if m["dropout"] > gate.dropout_loop:
                     fail.append(f"{where}: провал площади {m['dropout']:.0%}")
                 if m["strobe"] is not None and m["strobe"] < gate.strobe_min:

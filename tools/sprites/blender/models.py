@@ -103,6 +103,60 @@ def lamplighter_parts():
     return parts
 
 
+def warden_parts():
+    # Страж (мороз): латы светлее орды со всех сторон (светлый ключ G2.6), шлем, наплечники, башенный щит, копьё
+    parts = body(cloth="indigo", skin="skin", legs="indigo", boots="steel", arm_r=0.058, torso=(0.16, 0.21), head_r=0.11)
+    parts += [
+        cyl("chest", (0, 0, 1.36), 0.215, 0.22, "steel", radius_top=0.23),
+        ball("upper_arm.L", (0.24, 0, 1.45), 0.105, "steel", scale=(1.0, 1.1, 0.72)),
+        ball("upper_arm.R", (-0.24, 0, 1.45), 0.105, "steel", scale=(1.0, 1.1, 0.72)),
+        ball("head", (0, 0, 1.63), 0.128, "steel", scale=(1.0, 1.06, 1.02)),
+        box("head", (0, 0.01, 1.77), (0.035, 0.2, 0.07), "crimson"),
+        # щит на кисти: кисть в стойке компенсирует наклон руки, и щит стоит вертикально перед стражем
+        box("hand.L", (0.25, -0.075, 0.82), (0.38, 0.05, 0.56), "steel"),
+        box("hand.L", (0.25, -0.105, 0.82), (0.3, 0.02, 0.46), "indigo"),
+        # копьё: древко и наконечник; в покое смотрит вверх-вперёд на угол стойки — в стойке стоит вертикально
+        box("hand.R", _along(0.2), (0.03, 0.03, 1.1), "earth", rot=(STANCE_TILT, 0, 0)),
+        box("hand.R", _along(0.78), (0.06, 0.02, 0.16), "steel", rot=(STANCE_TILT, 0, 0)),
+        # фонарь отряда — на поясе
+        cyl("pelvis", (0.17, -0.1, 0.86), 0.035, 0.08, "radiance", glow=True),
+        cyl("pelvis", (0.17, -0.1, 0.915), 0.04, 0.02, "brass"),
+    ]
+    return parts
+
+
+def sparkwright_parts():
+    # Искровед (молния): кожаная куртка, широкополая шляпа, очки, ранец с катушками, посох со светящимся навершием
+    parts = body(cloth="brass", skin="skin", legs="earth", boots="earth", arm_r=0.046, torso=(0.14, 0.17), head_r=0.1)
+    parts += [
+        cyl("head", (0, 0, 1.71), 0.25, 0.025, "earth"),
+        cyl("head", (0, 0.005, 1.775), 0.11, 0.13, "earth", radius_top=0.085),
+        box("head", (0, -0.093, 1.635), (0.17, 0.03, 0.045), "brass"),
+        box("chest", (0, 0.165, 1.3), (0.27, 0.13, 0.32), "earth"),
+        cyl("chest", (0.08, 0.2, 1.5), 0.028, 0.14, "brass"),
+        cyl("chest", (-0.08, 0.2, 1.5), 0.028, 0.14, "brass"),
+        ball("chest", (0.08, 0.2, 1.585), 0.03, "lightning", glow=True),
+        ball("chest", (-0.08, 0.2, 1.585), 0.03, "lightning", glow=True),
+        # посох проходит сквозь кисть и, как копьё стража, в стойке стоит вертикально, навершие — над шляпой
+        box("hand.R", _along(0.08), (0.032, 0.032, 1.4), "earth", rot=(STANCE_TILT, 0, 0)),
+        cyl("hand.R", _along(0.68), 0.045, 0.05, "brass", rot=(STANCE_TILT, 0, 0)),
+        ball("hand.R", _along(0.77), 0.065, "lightning", glow=True),
+    ]
+    return parts
+
+
+# Суммарный наклон правой кисти вперёд в стойке героя (плечо −8°, предплечье −30°, кисть −14°, см. HERO_READY):
+# стойка поворачивает кисть на −52° вокруг X, поэтому оружие в покое смотрит вверх-вперёд на +52° — и в стойке
+# оказывается вертикальным.
+STANCE_TILT = 52.0
+
+
+def _along(distance, hand=(-0.22, 0.0, 0.88)):
+    """Точка на оси оружия в правой кисти (в покое — вверх-вперёд на STANCE_TILT), distance — в долях роста."""
+    tilt = math.radians(STANCE_TILT)
+    return (hand[0], hand[1] - distance * math.sin(tilt), hand[2] + distance * math.cos(tilt))
+
+
 def ghoul_parts():
     # плоть светлее мира (план светлоты), тёмная только тряпка; руки толще — тонкие пропадают при даунскейле
     parts = body(cloth="rot", skin="rot", legs="rot", boots="rot", arm_r=0.056, torso=(0.12, 0.16), head_r=0.10)
@@ -420,14 +474,14 @@ def monster_death(t, frames=10):
 
 HERO_DIRS = ["S", "SE", "E", "NE", "N"]
 HERO_MIRROR = {"SW": "SE", "W": "E", "NW": "NE"}
-MONSTER_DIRS = ["S", "E", "N"]
-MONSTER_MIRROR = {"W": "E"}
 
-MODELS = {
-    "lamplighter": {
-        "note": "тестовый герой-фонарщик: капюшон, плащ, фонарь, клинок",
-        "height": 1.0, "width": 1.0, "target_px": 48, "canvas": 96, "anchor_y": 0.70,
-        "parts": lamplighter_parts,
+
+def hero(note, parts, height, width, target_px):
+    """Герой отряда: общий риг и общие клипы — различаются пропорции и детали (ADR 0003 п. 4)."""
+    return {
+        "note": note,
+        "height": height, "width": width, "target_px": target_px, "canvas": 120, "anchor_y": 0.68,
+        "parts": parts,
         "carrier": "spine",
         "directions": HERO_DIRS, "mirror": HERO_MIRROR,
         "clips": {
@@ -437,7 +491,14 @@ MODELS = {
             "hit": (hero_hit, 4, 12, False, None, None),
             "death": (hero_death, 12, 12, False, ["S"], None),
         },
-    },
+    }
+MONSTER_DIRS = ["S", "E", "N"]
+MONSTER_MIRROR = {"W": "E"}
+
+MODELS = {
+    "lamplighter": hero("тестовый герой-фонарщик (огонь): капюшон, плащ, фонарь, клинок", lamplighter_parts, 1.0, 1.0, 48),
+    "warden": hero("тестовый герой-страж (мороз): латы, шлем, башенный щит, копьё", warden_parts, 1.02, 1.12, 50),
+    "sparkwright": hero("тестовый герой-искровед (молния): шляпа, очки, ранец с катушками, посох", sparkwright_parts, 0.98, 0.94, 50),
     "ghoul": {
         "note": "тестовый рядовой враг: сутулый, когти, без оружия",
         "height": 0.92, "width": 0.95, "target_px": 30, "canvas": 64, "anchor_y": 0.72,
