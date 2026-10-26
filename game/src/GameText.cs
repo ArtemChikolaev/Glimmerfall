@@ -15,7 +15,12 @@ public static class GameText
 
     /// <summary>Лист героя по виду (HeroIds): у каждого своя модель на общем риге.</summary>
     public static readonly string[] HeroSheets = { "lamplighter", "warden", "sparkwright" };
-    public static readonly string[] HeroElements = { "огонь", "мороз", "молния" };
+
+    /// <summary>Стихия — по <see cref="Element"/> из данных сима: по паре стихий выбирается дуэт связки.</summary>
+    public static readonly string[] ElementNames = { "огонь", "мороз", "молния" };
+
+    /// <summary>Дуэт-приёмы связки по <see cref="DuetKind"/>.</summary>
+    public static readonly string[] DuetNames = { "Паровой взрыв", "Ледяная гроза", "Огненный шторм" };
     public static readonly string[] EnemyNames = { "Бродяга", "Бегун", "Громила", "Плевальщик", "Таран", "Опустошитель", "Страж мрака" };
     public static readonly string[] ActNames = { "Угасающий тракт", "Погост", "Собор Тьмы", "Пепельный предел" };
 

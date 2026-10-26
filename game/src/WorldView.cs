@@ -40,6 +40,7 @@ public partial class WorldView : Node2D
     private LightningArcs _arcs = null!;
     private Particles _particles = null!;
     private readonly Rings _ringFx = new();
+    private readonly List<PendingStrike> _strikes = new();
     private readonly List<Corpse> _corpses = new();
     private readonly HeroAnimator _hero = new();
     private readonly float[] _kickX = new float[World.EnemyCapacity];
@@ -99,7 +100,7 @@ public partial class WorldView : Node2D
         host.Fx.AddChild(_fx);
         _gems = AddLayer(new InstanceLayer(glow, additive, 512));
         _flames = AddLayer(new InstanceLayer(glow, additive, 128));
-        _rings = AddLayer(new InstanceLayer(ProceduralArt.Ring(64), additive, 64));
+        _rings = AddLayer(new InstanceLayer(ProceduralArt.Ring(64), additive, 128));
         _shots = AddLayer(new InstanceLayer(glow, additive, 64));
         _projectiles = AddLayer(new InstanceLayer(glow, additive, 1024));
         _sparks = AddLayer(new InstanceLayer(glow, additive, 1024));
@@ -148,6 +149,7 @@ public partial class WorldView : Node2D
     public void Consume(List<SimEvent> events)
     {
         MasterPalette palette = MasterPalette.Instance;
+        int strikes = 0;
         foreach (SimEvent e in events)
         {
             float x = e.X.Raw * FixToFloat;
@@ -230,8 +232,119 @@ public partial class WorldView : Node2D
                     _particles.Burst(x, y - 8, 24, el.Spark, 160f, 0.4f, 4f);
                     break;
                 }
+                case SimEventType.Duet:
+                    DuetBurst(e, x, y);
+                    strikes = 0;
+                    break;
+                case SimEventType.DuetStrike:
+                {
+                    // удары дуэта в симе одновременны; картинка идёт волной от ближних к дальним — порядок событий
+                    float stagger = (DuetKind)e.Kind == DuetKind.IceStorm ? 0.02f : 0.04f;
+                    _strikes.Add(new PendingStrike { X = x, Y = y, Duet = (DuetKind)e.Kind, Radius = e.Amount, Delay = stagger * strikes++ });
+                    break;
+                }
             }
         }
+    }
+
+    /// <summary>Дуэт связки: вспышка пары в центре — смесь стихий уходящего (Target) и входящего (Source) героев.</summary>
+    private void DuetBurst(SimEvent e, float x, float y)
+    {
+        Element outgoing = ElementOf(e.Target);
+        Element incoming = ElementOf(e.Source);
+        _ringFx.Add(x, y - 10, 4, 46, 0.25f, Colors.White);
+        switch ((DuetKind)e.Kind)
+        {
+            case DuetKind.SteamBurst:
+                // огонь и мороз — два кольца до края взрыва и облако пара, которое поднимается над толпой
+                _ringFx.Add(x, y - 6, 14, e.Amount, 0.6f, outgoing.Core);
+                _ringFx.Add(x, y - 6, 8, e.Amount * 0.8f, 0.5f, incoming.Core);
+                Color steam = new(0.92f, 0.95f, 1f, 0.4f);
+                for (int k = 0; k < 56; k++)
+                {
+                    float angle = k * MathF.Tau / 56;
+                    float r = e.Amount * (0.25f + 0.75f * _particles.Random01());
+                    _particles.Trail(x + MathF.Cos(angle) * r, y - 6 + MathF.Sin(angle) * r * 0.75f, steam, 1.2f, 18f, 22f, rise: 30f);
+                }
+                _particles.Burst(x, y - 10, 70, outgoing.Spark, 300f, 0.5f, 4f);
+                _particles.Burst(x, y - 10, 70, incoming.Spark, 240f, 0.55f, 4f);
+                break;
+            case DuetKind.IceStorm:
+                // мороз и молния — кристаллы взлетают в небо, откуда ударит гроза
+                _ringFx.Add(x, y - 6, 10, 90, 0.45f, incoming.Core);
+                _particles.Burst(x, y - 20, 50, outgoing.Spark, 150f, 0.7f, 4f, rise: 90f);
+                break;
+            case DuetKind.Firestorm:
+                // молния и огонь — разряд в центре, дальше дуги несут огонь к точкам взрывов
+                _ringFx.Add(x, y - 6, 10, 70, 0.4f, outgoing.Core);
+                _particles.Burst(x, y - 12, 50, incoming.Spark, 220f, 0.45f, 4f);
+                break;
+        }
+    }
+
+    /// <summary>Удар дуэта в точке: молния с неба и осколки льда или взрыв огня с дугой от героя.</summary>
+    private void StrikeFx(PendingStrike s)
+    {
+        MasterPalette palette = MasterPalette.Instance;
+        Element fire = _elements[(int)Sim.Content.Element.Fire];
+        Element frost = _elements[(int)Sim.Content.Element.Frost];
+        Element lightning = _elements[(int)Sim.Content.Element.Lightning];
+        if (s.Duet == DuetKind.IceStorm)
+        {
+            var sky = new Vector2(s.X + (_particles.Random01() * 2 - 1) * 24f, s.Y - 170f);
+            _arcs.Add(sky, new Vector2(s.X, s.Y - 6), lightning.Glow, lightning.Core);
+            _ringFx.Add(s.X, s.Y - 4, 4, 26, 0.3f, frost.Core);
+            _particles.Burst(s.X, s.Y - 6, 16, frost.Spark, 130f, 0.4f, 3f);
+            return;
+        }
+        _arcs.Add(HeroPosition + new Vector2(0, -14), new Vector2(s.X, s.Y - 6), lightning.Glow, lightning.Core);
+        _ringFx.Add(s.X, s.Y - 4, 6, s.Radius, 0.4f, fire.Core);
+        _ringFx.Add(s.X, s.Y - 4, 2, s.Radius * 0.6f, 0.3f, fire.Glow);
+        _particles.Burst(s.X, s.Y - 6, 34, fire.Spark, 190f, 0.5f, 4f);
+        _particles.Burst(s.X, s.Y - 6, 12, palette["stone3"], 40f, 0.9f, 4f, rise: 30f);
+    }
+
+    /// <summary>Отложенные удары дуэта: выходят по очереди, пока кадр идёт (на паузе стоят).</summary>
+    private void ReleaseStrikes(float frameSeconds)
+    {
+        for (int k = _strikes.Count - 1; k >= 0; k--)
+        {
+            PendingStrike s = _strikes[k];
+            s.Delay -= frameSeconds;
+            if (s.Delay > 0f)
+            {
+                _strikes[k] = s;
+                continue;
+            }
+            _strikes.RemoveAt(k);
+            StrikeFx(s);
+        }
+    }
+
+    /// <summary>
+    /// Связка: пока открыто окно после ассиста, выпрыгнувший герой ждёт рядом, а между ним и активным бегут огни
+    /// обеих стихий — подсказка «жми свап». К концу окна огни мигают чаще.
+    /// </summary>
+    private void DrawLink(Squad squad)
+    {
+        if (squad.LinkTicks <= 0 || squad.LinkHelper < 0)
+        {
+            return;
+        }
+        Element a = ElementOf(squad.Kind[squad.Active]);
+        Element b = ElementOf(squad.Kind[squad.LinkHelper]);
+        Vector2 from = HeroPosition + new Vector2(0, -14);
+        Vector2 to = HeroPosition + _hero.PartnerOffset + new Vector2(0, -14);
+        float blink = squad.LinkTicks < 30 ? 0.55f + 0.45f * MathF.Sin(_time * 40f) : 1f;
+        float phase = _time * 2.5f % 1f;
+        const int beads = 8;
+        for (int k = 0; k < beads; k++)
+        {
+            float t = (k + phase) / beads;
+            Vector2 at = from.Lerp(to, t) + new Vector2(0, -MathF.Sin(t * MathF.PI) * 6f);
+            _sparks.Add(at.X, at.Y, 5f, new Color(k % 2 == 0 ? a.Core : b.Core, 0.9f * blink));
+        }
+        _sparks.Add(to.X, to.Y + 14, 22f + 3f * MathF.Sin(_time * 9f), new Color(b.Glow, 0.35f * blink));
     }
 
     /// <summary>Ассист: резервный герой выпрыгивает рядом, его приём — эффектом своей стихии.</summary>
@@ -273,6 +386,7 @@ public partial class WorldView : Node2D
         _arcs.Advance(frameSeconds);
         Squad squad = w.Squad;
         HeroPosition = new Vector2(Lerp(squad.PrevX, squad.X, alpha), Lerp(squad.PrevY, squad.Y, alpha));
+        ReleaseStrikes(frameSeconds);
         Vector2 half = _host.HalfView;
         var view = new Rect2(HeroPosition - half - new Vector2(CullMargin, CullMargin), 2 * half + new Vector2(2 * CullMargin, 2 * CullMargin));
 
@@ -321,6 +435,7 @@ public partial class WorldView : Node2D
         _rings.End();
         _sparks.Begin();
         _particles.Draw(_sparks);
+        DrawLink(squad);
         _sparks.End();
 
         foreach (SpriteLayer layer in _heroLayers)
@@ -486,7 +601,9 @@ public partial class WorldView : Node2D
         }
     }
 
-    private Element ElementOf(int heroKind) => heroKind >= 0 && heroKind < _elements.Length ? _elements[heroKind] : _elements[0];
+    /// <summary>Цвета стихии героя — по стихии из данных сима (она же выбирает дуэт связки).</summary>
+    private Element ElementOf(int heroKind) =>
+        heroKind >= 0 && heroKind < _world.Config.HeroKinds.Length ? _elements[(int)_world.Config.HeroKinds[heroKind].Element] : _elements[0];
 
     /// <summary>Лист элиты (60 px, ADR 0003: элиты 48–72) — только элитам и боссу; рядовые любого радиуса — гули.</summary>
     private SpriteLayer LayerFor(EnemyKind kind) => kind.Elite || kind.Behavior == EnemyBehavior.Boss ? _brutes : _ghouls;
@@ -511,17 +628,29 @@ public partial class WorldView : Node2D
         public int Kind;
         public float Age;
     }
+
+    private struct PendingStrike
+    {
+        public float X;
+        public float Y;
+        public DuetKind Duet;
+        public float Radius;
+        public float Delay;
+    }
 }
 
 /// <summary>
 /// Анимация героев отряда в презентации: у каждого свой лист. Активный — бег или стойка по движению, удар по событию
 /// атаки лицом к цели, вздрагивание по попаданию, смерть, когда отряд пал; во время рывка — шлейф копий. Смена героя
-/// (PRD §5): уходящий делает приём и растворяется (павший — падает), входящий выходит с ударом.
+/// (PRD §5): уходящий делает приём и растворяется (павший — падает), входящий выходит с ударом. Ассист: помощник
+/// выпрыгивает и бьёт, а пока открыто окно связки — ждёт рядом с активным, бежит вместе с ним и мерцает.
 /// </summary>
 public sealed class HeroAnimator
 {
     private const int GhostCount = 5;
     private const float ExitSeconds = 0.45f;
+    private const float AssistStrikeSeconds = 0.55f;
+    private const float PartnerDistance = 26f;
 
     private readonly Ghost[] _ghosts = new Ghost[GhostCount];
     private SpriteClip? _action;
@@ -539,6 +668,9 @@ public sealed class HeroAnimator
 
     /// <summary>Слой с листом каждого героя, по виду героя.</summary>
     public SpriteLayer[] Layers { get; set; } = Array.Empty<SpriteLayer>();
+
+    /// <summary>Где стоит помощник ассиста относительно активного героя (по взгляду в момент ассиста).</summary>
+    public Vector2 PartnerOffset { get; private set; } = new(PartnerDistance, 2);
 
     private SpriteSheet Sheet { get; set; } = null!;
 
@@ -568,6 +700,8 @@ public sealed class HeroAnimator
         float norm = MathF.Sqrt(dx * dx + dy * dy);
         var dir = norm > 1e-4f ? new Vector2(dx / norm, dy / norm) : new Vector2(1, 0);
         _assist = new Exit { Kind = kind, X = dir.X, Y = dir.Y, Direction = SpriteSheet.Direction(dir.X, dir.Y), Clip = "attack", Age = 0 };
+        // сбоку от активного, со стороны взгляда: фигуры высокие и узкие — по вертикали они бы слиплись
+        PartnerOffset = new Vector2(dir.X < 0 ? -PartnerDistance : PartnerDistance, 2);
     }
 
     public void Draw(Vector2 at, Squad squad, World world, float frameSeconds)
@@ -589,7 +723,7 @@ public sealed class HeroAnimator
             }
         }
         DrawExit(frameSeconds);
-        DrawAssist(at, frameSeconds);
+        DrawAssist(at, squad, frameSeconds);
         if ((squad.AliveCount == 0 || world.Outcome == RunOutcome.Defeat) && _action?.Name != "death")
         {
             Start("death", -1);
@@ -673,25 +807,55 @@ public sealed class HeroAnimator
         Layers[_exit.Kind].Add(_exit.X, _exit.Y, clip.FrameAt(_exit.Age * 1.6f), clip.Row(_exit.Direction), clip.Flip(_exit.Direction), fade, 0.25f * alpha);
     }
 
-    /// <summary>Помощник ассиста: рядом с отрядом (X, Y хранят направление), вспыхивает, бьёт и гаснет за полсекунды.</summary>
-    private void DrawAssist(Vector2 at, float frameSeconds)
+    /// <summary>
+    /// Помощник ассиста рядом с отрядом: вспыхивает и бьёт; пока открыто окно связки на него — ждёт, бежит вместе
+    /// с активным и мерцает, потом гаснет. Стал активным (связка сработала) — пропадает: дальше его рисует свап.
+    /// </summary>
+    private void DrawAssist(Vector2 at, Squad squad, float frameSeconds)
     {
         if (_assist.Kind < 0)
         {
             return;
         }
-        _assist.Age += frameSeconds;
-        const float life = 0.55f;
-        if (_assist.Age >= life)
+        if (squad.Kind[squad.Active] == _assist.Kind)
         {
             _assist.Kind = -1;
             return;
         }
-        SpriteClip clip = Layers[_assist.Kind].Sheet["attack"];
-        float alpha = Math.Min(1f, _assist.Age / 0.06f) * Math.Min(1f, (life - _assist.Age) / 0.2f);
-        Vector2 place = at + new Vector2(_assist.X, _assist.Y) * 18f + new Vector2(0, 2);
-        Layers[_assist.Kind].Add(place.X, place.Y, clip.FrameAt(_assist.Age * 1.7f), clip.Row(_assist.Direction), clip.Flip(_assist.Direction),
-            new Color(1f, 1f, 1f, alpha), 0.35f * (1f - _assist.Age / life));
+        _assist.Age += frameSeconds;
+        bool waiting = squad.LinkTicks > 0 && squad.LinkHelper >= 0 && squad.Kind[squad.LinkHelper] == _assist.Kind;
+        float fadeFrom = Math.Max(AssistStrikeSeconds, _assist.Hold);
+        if (waiting)
+        {
+            _assist.Hold = _assist.Age + 0.2f;
+        }
+        else if (_assist.Age >= fadeFrom)
+        {
+            _assist.Kind = -1;
+            return;
+        }
+        bool striking = _assist.Age < AssistStrikeSeconds;
+        float alpha = Math.Min(1f, _assist.Age / 0.06f) * (waiting ? 1f : Math.Min(1f, (fadeFrom - _assist.Age) / 0.2f));
+        float glow = striking ? 0.35f * (1f - _assist.Age / AssistStrikeSeconds) : 0.18f + 0.12f * MathF.Sin(_assist.Age * 12f);
+        SpriteClip clip;
+        int frame;
+        int direction;
+        if (striking)
+        {
+            clip = Layers[_assist.Kind].Sheet["attack"];
+            frame = clip.FrameAt(_assist.Age * 1.7f);
+            direction = _assist.Direction;
+        }
+        else
+        {
+            bool moving = squad.X != squad.PrevX || squad.Y != squad.PrevY;
+            clip = Layers[_assist.Kind].Sheet[moving ? "run" : "idle"];
+            frame = clip.FrameAt(_locomotionTime);
+            direction = _direction;
+            alpha *= 0.8f;
+        }
+        Vector2 place = at + PartnerOffset;
+        Layers[_assist.Kind].Add(place.X, place.Y, frame, clip.Row(direction), clip.Flip(direction), new Color(1f, 1f, 1f, alpha), glow);
     }
 
     private void Start(string name, int direction)
@@ -713,6 +877,8 @@ public sealed class HeroAnimator
         public int Direction;
         public string Clip;
         public float Age;
+        /// <summary>Помощник ассиста: до какого возраста держится (окно связки), потом гаснет.</summary>
+        public float Hold;
     }
 
     private struct Ghost

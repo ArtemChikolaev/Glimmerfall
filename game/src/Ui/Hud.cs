@@ -11,7 +11,8 @@ namespace Glimmerfall.Game;
 
 /// <summary>
 /// HUD забега в родном разрешении: отряд с портретами и здоровьем, акт и цель, полоса босса, опыт и уровень,
-/// рывок и смена героя с откатом, счёт поверженных. Читает мир каждый кадр, в сим ничего не пишет.
+/// рывок, смена героя и ассист с откатом, в окне связки — подсказка дуэта, счёт поверженных. Читает мир каждый кадр,
+/// в сим ничего не пишет.
 /// </summary>
 public partial class Hud : Control
 {
@@ -95,6 +96,7 @@ public partial class Hud : Control
         _dash = new Ability("Рывок", "Пробел");
         bottom.AddChild(_dash.Root);
         _swap = new Ability("Смена", "Q");
+        _swap.Root.CustomMinimumSize = new Vector2(230, 0);
         bottom.AddChild(_swap.Root);
         _assist = new Ability("Ассист", "E");
         _assist.Root.CustomMinimumSize = new Vector2(230, 0);
@@ -139,7 +141,16 @@ public partial class Hud : Control
         _fps.Text = $"{Engine.GetFramesPerSecond():0} кадр/с";
         _dash.Refresh(s.DashCooldown, Rules.DashCooldownTicks, s.DashTicks > 0);
         int helper = world.NextAliveReserve();
-        _swap.Refresh(s.SwapCooldown, Rules.SwapCooldownTicks, false, helper < 0);
+        // окно связки: свап готов и войдёт тот, кто выпрыгнул ассистом, — вместо отката подсказка дуэта
+        if (s.LinkTicks > 0 && s.LinkHelper == helper && s.SwapCooldown == 0
+            && Rules.TryDuet(world.ActiveHero.Element, world.Config.HeroKinds[s.Kind[helper]].Element, out DuetKind duet))
+        {
+            _swap.ShowLink($"Связка [Q] · {GameText.DuetNames[(int)duet]}", s.LinkTicks, Rules.LinkWindowTicks);
+        }
+        else
+        {
+            _swap.Refresh(s.SwapCooldown, Rules.SwapCooldownTicks, false, helper < 0);
+        }
         _assist.Name = helper >= 0 ? $"Ассист: {GameText.HeroNames[s.Kind[helper]]}" : "Ассист";
         _assist.Refresh(s.AssistCooldown, Rules.AssistCooldownTicks, false, helper < 0);
 
@@ -188,6 +199,7 @@ void fragment() {
         private readonly Label _hpText;
         private readonly StyleBoxFlat _active;
         private readonly StyleBoxFlat _idle;
+        private readonly StyleBoxFlat _waiting;
 
         private readonly Texture2D[] _portraits;
 
@@ -195,6 +207,7 @@ void fragment() {
         {
             _active = UiKit.Box(UiKit.SootLight, UiKit.Glow, 2, 4);
             _idle = UiKit.Box(UiKit.WithAlpha(MasterPalette.Instance["gloom1"], 0.7f), UiKit.WithAlpha(UiKit.BrassDark, 0.6f), 1, 4);
+            _waiting = UiKit.Box(UiKit.SootLight, MasterPalette.Instance["radiance2"], 2, 4);
             Root = new PanelContainer { MouseFilter = MouseFilterEnum.Ignore, CustomMinimumSize = new Vector2(300, 0) };
             var row = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
             row.AddThemeConstantOverride("separation", 8);
@@ -238,8 +251,12 @@ void fragment() {
             int kind = s.Kind[index];
             bool active = index == s.Active;
             bool alive = s.Alive[index];
-            Root.AddThemeStyleboxOverride("panel", active ? _active : _idle);
-            _name.Text = $"{GameText.HeroNames[kind]} · {GameText.HeroElements[kind]}";
+            // окно связки: герой, выпрыгнувший ассистом, ждёт свапа, и свап готов — строка светится и пульсирует
+            bool waiting = s.LinkTicks > 0 && index == s.LinkHelper && s.SwapCooldown == 0;
+            Root.AddThemeStyleboxOverride("panel", active ? _active : waiting ? _waiting : _idle);
+            _name.Text = waiting
+                ? $"{GameText.HeroNames[kind]} · связка [Q]"
+                : $"{GameText.HeroNames[kind]} · {GameText.ElementNames[(int)world.Config.HeroKinds[kind].Element]}";
             _hp.MaxValue = s.MaxHp[index];
             _hp.Value = s.Hp[index];
             _hpText.Text = alive ? $"{s.Hp[index]}/{s.MaxHp[index]}" : "пал";
@@ -248,13 +265,16 @@ void fragment() {
                 _portrait.Texture = _portraits[kind];
             }
             _portrait.Modulate = alive ? Colors.White : new Color(0.35f, 0.35f, 0.4f);
-            Root.Modulate = active ? Colors.White : new Color(1, 1, 1, alive ? 0.8f : 0.5f);
+            float pulse = 1.1f + 0.15f * MathF.Sin((float)Time.GetTicksMsec() / 80f);
+            Root.Modulate = active ? Colors.White : waiting ? new Color(pulse, pulse, pulse * 0.85f) : new Color(1, 1, 1, alive ? 0.8f : 0.5f);
         }
     }
 
     /// <summary>Значок способности с откатом: название, клавиша и заполнение готовности.</summary>
     private sealed class Ability
     {
+        private static readonly StyleBoxFlat LinkStyle = UiKit.Box(UiKit.SootLight, UiKit.Glow, 2, 4);
+
         public readonly PanelContainer Root;
         private readonly Label _label;
         private readonly ProgressBar _ready;
@@ -283,7 +303,19 @@ void fragment() {
             _ready.Value = full - cooldown;
             string state = unavailable ? "нет резерва" : cooldown > 0 ? $"{(cooldown + 59) / 60} с" : "готово";
             _label.Text = $"{Name} [{_key}] · {state}";
+            Root.RemoveThemeStyleboxOverride("panel");
             Root.Modulate = active ? new Color(1.3f, 1.2f, 0.9f) : cooldown > 0 || unavailable ? new Color(1, 1, 1, 0.65f) : Colors.White;
+        }
+
+        /// <summary>Окно связки: подпись дуэта, полоса — остаток окна, рамка светится и пульсирует.</summary>
+        public void ShowLink(string text, int ticksLeft, int window)
+        {
+            _ready.MaxValue = window;
+            _ready.Value = ticksLeft;
+            _label.Text = text;
+            Root.AddThemeStyleboxOverride("panel", LinkStyle);
+            float pulse = 1.15f + 0.2f * MathF.Sin((float)Time.GetTicksMsec() / 70f);
+            Root.Modulate = new Color(pulse, pulse * 0.95f, 0.85f);
         }
     }
 }
@@ -467,14 +499,17 @@ public partial class Banner : Control
 
 /// <summary>
 /// Цифры урона в родном разрешении над точкой мира: мелкие, всплывают и гаснут, крит крупнее и теплее; не больше
-/// <see cref="Capacity"/> одновременно (ADR 0003 п. 6 — лимит плотности).
+/// <see cref="Capacity"/> одновременно (ADR 0003 п. 6 — лимит плотности). Название дуэт-приёма связки — крупной
+/// надписью над отрядом, отдельно от цифр: орда цифр её не вытесняет.
 /// </summary>
 public partial class DamageNumbers : Control
 {
     private const int Capacity = 48;
     private const float Life = 0.7f;
+    private const float CalloutLife = 1.4f;
 
     private readonly List<Entry> _entries = new();
+    private readonly List<Entry> _callouts = new();
     private WorldHost _host = null!;
     private readonly Random _random = new();
 
@@ -498,9 +533,29 @@ public partial class DamageNumbers : Control
                 case SimEventType.HeroHit:
                     Add(e, MasterPalette.Instance["crimson4"], 20);
                     break;
+                case SimEventType.Duet:
+                    if (_callouts.Count >= 2)
+                    {
+                        _callouts.RemoveAt(0);
+                    }
+                    _callouts.Add(new Entry
+                    {
+                        World = new Vector2(e.X.Raw / (float)Fix.OneRaw, e.Y.Raw / (float)Fix.OneRaw - 46),
+                        Text = $"Связка · {GameText.DuetNames[e.Kind]}",
+                        Color = DuetColor((DuetKind)e.Kind),
+                        Size = 26,
+                    });
+                    break;
             }
         }
     }
+
+    private static Color DuetColor(DuetKind duet) => MasterPalette.Instance[duet switch
+    {
+        DuetKind.SteamBurst => "frost4",
+        DuetKind.IceStorm => "lightning4",
+        _ => "fire4",
+    }];
 
     private void Add(SimEvent e, Color color, int size)
     {
@@ -515,21 +570,31 @@ public partial class DamageNumbers : Control
 
     public void Advance(float seconds)
     {
-        for (int i = _entries.Count - 1; i >= 0; i--)
-        {
-            Entry entry = _entries[i];
-            entry.Age += seconds;
-            if (entry.Age >= Life)
-            {
-                _entries.RemoveAt(i);
-                continue;
-            }
-            _entries[i] = entry;
-        }
+        Age(_entries, seconds, Life);
+        Age(_callouts, seconds, CalloutLife);
         QueueRedraw();
     }
 
-    public void Clear() => _entries.Clear();
+    private static void Age(List<Entry> entries, float seconds, float life)
+    {
+        for (int i = entries.Count - 1; i >= 0; i--)
+        {
+            Entry entry = entries[i];
+            entry.Age += seconds;
+            if (entry.Age >= life)
+            {
+                entries.RemoveAt(i);
+                continue;
+            }
+            entries[i] = entry;
+        }
+    }
+
+    public void Clear()
+    {
+        _entries.Clear();
+        _callouts.Clear();
+    }
 
     public override void _Draw()
     {
@@ -544,6 +609,17 @@ public partial class DamageNumbers : Control
             int size = (int)(entry.Size * pop);
             DrawStringOutline(font, at, entry.Text, HorizontalAlignment.Center, 60, size, 5, UiKit.WithAlpha(outline, alpha));
             DrawString(font, at, entry.Text, HorizontalAlignment.Center, 60, size, UiKit.WithAlpha(entry.Color, alpha));
+        }
+        // название дуэта: выпрыгивает крупно, медленно всплывает и гаснет в последней трети
+        foreach (Entry entry in _callouts)
+        {
+            float t = entry.Age / CalloutLife;
+            Vector2 at = _host.WorldToUi(entry.World) + new Vector2(-240, -24 * t);
+            float alpha = t < 0.66f ? 1f : 1f - (t - 0.66f) / 0.34f;
+            float pop = t < 0.1f ? 1.5f - t * 5f : 1f;
+            int size = (int)(entry.Size * pop);
+            DrawStringOutline(font, at, entry.Text, HorizontalAlignment.Center, 480, size, 8, UiKit.WithAlpha(outline, alpha));
+            DrawString(font, at, entry.Text, HorizontalAlignment.Center, 480, size, UiKit.WithAlpha(entry.Color, alpha));
         }
     }
 

@@ -396,6 +396,7 @@ public partial class Main : Node
             _hud.Refresh(world, frozen ? 0f : seconds);
             _numbers.Advance(frozen ? 0f : seconds);
         }
+        _touch.ShowLink(_mode == Mode.Run && world.Squad.LinkTicks > 0);
         Measure(delta, (Time.GetTicksUsec() - frameStart) / 1000.0, simMs);
         CheckAutomation();
     }
@@ -441,7 +442,14 @@ public partial class Main : Node
                     AddTrauma(0.25f);
                     if (_options.CaptureAssist > 0 && --_options.CaptureAssist == 0)
                     {
-                        _options.CaptureFrame = _frames + 6;
+                        _options.CaptureFrame = _frames + _options.CaptureDelay;
+                    }
+                    break;
+                case SimEventType.Duet:
+                    AddTrauma(0.65f);
+                    if (_options.CaptureDuet > 0 && --_options.CaptureDuet == 0)
+                    {
+                        _options.CaptureFrame = _frames + _options.CaptureDelay;
                     }
                     break;
                 case SimEventType.EnemyKilled when e.Kind >= Sim.Content.EnemyIds.Ravager:
@@ -551,7 +559,7 @@ public partial class Main : Node
             SmokeFlow();
         }
         bool cardsReady = _options.CaptureCards && _cards.Visible && _frames > 10;
-        bool byFrame = !_options.CaptureCards && _options.CaptureAssist == 0 && _frames >= _options.CaptureFrame;
+        bool byFrame = !_options.CaptureCards && _options.CaptureAssist == 0 && _options.CaptureDuet == 0 && _frames >= _options.CaptureFrame;
         if (_options.CaptureUi != null && !_uiCaptured && (cardsReady || byFrame))
         {
             _uiCaptured = true;

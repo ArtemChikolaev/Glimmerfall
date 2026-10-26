@@ -1,11 +1,13 @@
+using System;
 using Godot;
 
 namespace Glimmerfall.Game;
 
 /// <summary>
-/// Тач-управление (PRD §11, «под телефон с первого дня»): плавающий стик в левой половине экрана, кнопки рывка
-/// и смены героя справа, «АВТО» — автопилот. Выбор в модалке — тапом по карточке. Всё сводится к тому же InputFrame.
-/// Координаты — интерфейса в родном разрешении (база 1280×720).
+/// Тач-управление (PRD §11, «под телефон с первого дня»): плавающий стик в левой половине экрана, кнопки рывка,
+/// смены героя и ассиста справа, «АВТО» — автопилот; в окне связки кнопка смены светится и зовёт нажать. Выбор
+/// в модалке — тапом по карточке. Всё сводится к тому же InputFrame. Координаты — интерфейса в родном разрешении
+/// (база 1280×720).
 /// </summary>
 public partial class TouchControls : Control
 {
@@ -19,6 +21,7 @@ public partial class TouchControls : Control
     private Vector2 _origin;
     private Vector2 _current;
     private bool _autopilotToggle;
+    private bool _link;
 
     public bool Used { get; private set; }
     public bool DashHeld => _dashFinger >= 0;
@@ -43,6 +46,16 @@ public partial class TouchControls : Control
     {
         SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         MouseFilter = MouseFilterEnum.Ignore;
+    }
+
+    /// <summary>Окно связки: пока открыто, кнопка смены пульсирует — перерисовка каждый кадр.</summary>
+    public void ShowLink(bool open)
+    {
+        if (open || _link)
+        {
+            QueueRedraw();
+        }
+        _link = open;
     }
 
     public bool TakeAutopilotToggle()
@@ -143,8 +156,9 @@ public partial class TouchControls : Control
         DrawString(ThemeDB.FallbackFont, auto.Position + new Vector2(10, 24), "АВТО", HorizontalAlignment.Left, -1, 16, ink);
         DrawCircle(DashCenter(size), ButtonRadius, DashHeld ? ink : idle);
         DrawString(ThemeDB.FallbackFont, DashCenter(size) + new Vector2(-30, 6), "РЫВОК", HorizontalAlignment.Left, -1, 16, ink);
-        DrawCircle(SwapCenter(size), ButtonRadius * 0.8f, SwapHeld ? ink : idle);
-        DrawString(ThemeDB.FallbackFont, SwapCenter(size) + new Vector2(-28, 6), "СМЕНА", HorizontalAlignment.Left, -1, 16, ink);
+        Color linkGlow = UiKit.WithAlpha(UiKit.Glow, 0.35f + 0.25f * MathF.Sin(Time.GetTicksMsec() / 80f));
+        DrawCircle(SwapCenter(size), ButtonRadius * 0.8f, SwapHeld ? ink : _link ? linkGlow : idle);
+        DrawString(ThemeDB.FallbackFont, SwapCenter(size) + new Vector2(_link ? -34 : -28, 6), _link ? "СВЯЗКА" : "СМЕНА", HorizontalAlignment.Left, -1, 16, ink);
         DrawCircle(AssistCenter(size), ButtonRadius * 0.8f, AssistHeld ? ink : idle);
         DrawString(ThemeDB.FallbackFont, AssistCenter(size) + new Vector2(-34, 6), "АССИСТ", HorizontalAlignment.Left, -1, 16, ink);
         if (_stickFinger >= 0)

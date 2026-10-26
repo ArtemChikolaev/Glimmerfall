@@ -50,7 +50,7 @@ public partial class TitleScreen : Control
         }
         AddChild(column);
 
-        var hint = UiKit.Text("WASD / стик — движение   ·   Пробел — рывок   ·   Q — смена героя   ·   E — ассист   ·   Esc — пауза", 16, UiKit.WaxDim);
+        var hint = UiKit.Text("WASD / стик — движение   ·   Пробел — рывок   ·   Q — смена героя   ·   E — ассист, затем Q — связка   ·   Esc — пауза", 16, UiKit.WaxDim);
         hint.SetAnchorsAndOffsetsPreset(LayoutPreset.CenterBottom);
         hint.GrowHorizontal = GrowDirection.Both;
         hint.HorizontalAlignment = HorizontalAlignment.Center;

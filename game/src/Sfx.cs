@@ -28,6 +28,9 @@ public enum Sound
     UiHover,
     Victory,
     Defeat,
+    Duet,
+    Thunder,
+    Blast,
 }
 
 /// <summary>
@@ -47,6 +50,7 @@ public partial class Sfx : Node
     private readonly double[] _lastPlayed = new double[Enum.GetValues<Sound>().Length];
     private readonly AudioStreamPlayer[] _voices = new AudioStreamPlayer[Voices];
     private readonly Random _random = new();
+    private readonly List<(double At, Sound Sound, float Volume)> _pending = new();
     private int _nextVoice;
     private double _now;
 
@@ -62,6 +66,8 @@ public partial class Sfx : Node
         MinGap[(int)Sound.EnemyShot] = 0.08;
         MinGap[(int)Sound.HeroHurt] = 0.1;
         MinGap[(int)Sound.UiHover] = 0.05;
+        MinGap[(int)Sound.Thunder] = 0.03;
+        MinGap[(int)Sound.Blast] = 0.03;
     }
 
     public override void _Ready()
@@ -79,7 +85,18 @@ public partial class Sfx : Node
         }
     }
 
-    public override void _Process(double delta) => _now += delta;
+    public override void _Process(double delta)
+    {
+        _now += delta;
+        for (int i = _pending.Count - 1; i >= 0; i--)
+        {
+            if (_pending[i].At <= _now)
+            {
+                Play(_pending[i].Sound, _pending[i].Volume, 0.12f);
+                _pending.RemoveAt(i);
+            }
+        }
+    }
 
     public static void SetVolumes(float master, float effects)
     {
@@ -120,13 +137,24 @@ public partial class Sfx : Node
         voice.Play();
     }
 
-    /// <summary>События тика → звуки.</summary>
+    /// <summary>События тика → звуки. Удары дуэта звучат волной, в такт картинке (WorldView).</summary>
     public void Consume(List<SimEvent> events)
     {
+        int strikes = 0;
         foreach (SimEvent e in events)
         {
             switch (e.Type)
             {
+                case SimEventType.Duet:
+                    Play(Sound.Duet, 1f, 0f);
+                    strikes = 0;
+                    break;
+                case SimEventType.DuetStrike:
+                {
+                    bool storm = (DuetKind)e.Kind == DuetKind.IceStorm;
+                    _pending.Add((_now + (storm ? 0.02 : 0.04) * strikes++, storm ? Sound.Thunder : Sound.Blast, storm ? 0.55f : 0.75f));
+                    break;
+                }
                 case SimEventType.EnemyHit:
                     Play(e.Crit ? Sound.Crit : Sound.Hit, e.Crit ? 0.7f : 0.45f, 0.12f);
                     break;
@@ -197,6 +225,10 @@ public partial class Sfx : Node
             Sound.UiHover => Sweep(1400, 1400, 0.03, 0.007, 0.12),
             Sound.Victory => Arpeggio(new[] { 392.0, 523.0, 659.0, 784.0, 1047.0 }, 0.12, 0.5, 0.35),
             Sound.Defeat => Arpeggio(new[] { 392.0, 311.0, 262.0, 196.0 }, 0.18, 0.6, 0.35),
+            Sound.Duet => Drive(Mix(Sweep(180, 70, 0.7, 0.28, 0.8), Noise(rng, 0.6, 1600, 0.2, 0.6),
+                Sweep(880, 1320, 0.45, 0.18, 0.18), Sweep(1320, 1760, 0.45, 0.15, 0.12)), 1.7f),
+            Sound.Thunder => Drive(Mix(Crackle(rng, 0.22, 0.7), Noise(rng, 0.3, 900, 0.1, 0.5), Sweep(110, 45, 0.3, 0.12, 0.5)), 1.5f),
+            Sound.Blast => Drive(Mix(Sweep(150, 45, 0.35, 0.12, 0.9), Noise(rng, 0.35, 1400, 0.1, 0.7)), 1.9f),
             _ => new float[1],
         };
     }
