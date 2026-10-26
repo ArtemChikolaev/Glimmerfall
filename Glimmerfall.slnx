@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="sim/Glimmerfall.Sim.csproj" />
+  <Project Path="sim.tests/Glimmerfall.Sim.Tests.csproj" />
+  <Project Path="sim.cli/Glimmerfall.Sim.Cli.csproj" />
+  <Project Path="game/Glimmerfall.csproj" />
+</Solution>

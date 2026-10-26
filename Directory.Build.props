@@ -1,0 +1,20 @@
+<Project>
+  <!-- Общие настройки C#-проектов sim/, sim.tests/, sim.cli/. У game/ свои (game/Directory.Build.props): его собирает Godot.NET.Sdk. -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Deterministic>true</Deterministic>
+    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+  <!--
+    Godot собирает зависимости игры своей конфигурацией ExportRelease, а Microsoft.NET.Sdk включает оптимизацию только
+    для Release: без этого Sim.dll уезжал в экспорт неоптимизированным, и тик в игре был в 3,5 раза медленнее, чем в CLI.
+  -->
+  <PropertyGroup Condition="'$(Configuration)' == 'ExportRelease'">
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Чистый C#-сим (ADR 0002): без ссылок на движок, без float/double, без System.Random.
+    netstandard2.1 — чтобы тот же Sim.dll грузили Godot (.NET 10), CLI, сервер-валидатор и запасной путь Unity (Mono).
+    Запреты проверяет sim.tests/SimPurityTests по IL сборки, а не обещанием.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <RootNamespace>Glimmerfall.Sim</RootNamespace>
+    <AssemblyName>Glimmerfall.Sim</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Glimmerfall.Sim.Tests" />
+  </ItemGroup>
+</Project>

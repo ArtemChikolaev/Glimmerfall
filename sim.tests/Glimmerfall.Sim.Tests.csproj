@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- xUnit v3 на Microsoft Testing Platform (global.json: test.runner). Запуск: dotnet test. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>Glimmerfall.Sim.Tests</RootNamespace>
+    <AssemblyName>Glimmerfall.Sim.Tests</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" Version="4.0.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../sim/Glimmerfall.Sim.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="golden/*.gfr" CopyToOutputDirectory="PreserveNewest" LinkBase="golden" />
+  </ItemGroup>
+</Project>
