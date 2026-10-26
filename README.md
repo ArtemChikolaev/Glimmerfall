@@ -17,8 +17,8 @@
 | `sim/` | чистый C# (`netstandard2.1`), фиксированная точка Q48.16 | вся игровая логика: детерминированно, headless, без движка |
 | `sim.tests/`, `sim.cli/` | xUnit v3; CLI `glimmerfall-sim` | тесты и golden-реплеи; бенч, бот-прогоны, карьера, запись и проверка реплеев |
 | `game/` | Godot 4.7.2 (.NET 10) | презентация: рендер, VFX, звук, UI, ввод, платформы |
-| `content/` | JSON + JSON Schema | герои, покровители, благословения, враги, акты (после вертикального среза) |
-| `tools/` | Python + Blender, shell | 3D → пиксельные спрайт-листы, генераторы таблиц, запуск Godot |
+| `content/` | JSON + JSON Schema | мастер-палитра, метаданные спрайт-листов, реестр происхождения ассетов; герои, покровители, враги и акты — после вертикального среза |
+| `tools/` | Python + Blender, shell | 3D → пиксельные спрайт-листы с QA (`tools/sprites`), генераторы таблиц, запуск Godot |
 | `server/`, `validator/` | Go; Docker с тем же Sim.dll | дейлики, приём и ре-симуляция реплеев, лидерборды |
 
 Окружение и пины версий — [G1.0](docs/spikes/G1.0-environment.md): .NET SDK 10.0.4xx (`global.json`), Godot 4.7.2 .NET (`.godot-version`), Go 1.26.
@@ -29,9 +29,10 @@
 ```bash
 make debug        # спайк орды в окне (Debug-сборка C#): F1 — автопилот или ручное управление
 make debug-act    # играбельный акт вручную: WASD или стик, пробел — рывок, Q — свап, 1–3 — выбор
-make check        # всё, что гоняет CI: сборка, тесты сима, смоук Godot, тесты сервера, скиллы, git diff --check
+make check        # всё, что гоняет CI: сборка, тесты сима, смоук Godot, тесты сервера, конвейер спрайтов, скиллы, git diff --check
 make bot POLICY=kiter RUNS=36 ACTS=3 TIER=0   # бот-прогоны со статистикой по актам
 make bench        # бенч тиков сима: 5 тыс. врагов и 2 тыс. снарядов
+make sprites      # Blender → спрайт-листы обеих сеток, QA и контактные листы (нужен Blender 5.2)
 make export-deck  # сборка для Steam Deck → build/glimmerfall-steamdeck-spike.zip
 ```
 
