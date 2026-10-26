@@ -45,6 +45,7 @@ public partial class Main : Node2D
         catch (ArgumentException e)
         {
             GD.PrintErr(e.Message);
+            _failed = true;
             GetTree().Quit(2);
             return;
         }

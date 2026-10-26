@@ -68,7 +68,7 @@ public static class ReplayCommands
     {
         bool json = args.Has("json");
         string dailyDate = args.Get("daily", "");
-        args.EnsureAllUsed();
+        args.EnsureAllUsed(allowPositional: true);
         if (args.Positional.Count == 0)
         {
             throw new ArgumentException("verify needs replay files (or - for stdin)");

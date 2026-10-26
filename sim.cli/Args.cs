@@ -74,8 +74,11 @@ public sealed class Args
         return _values.TryGetValue(key, out List<string>? values) ? values : (IReadOnlyList<string>)Array.Empty<string>();
     }
 
-    /// <summary>Бросает, если остались ключи, которые команда не прочитала.</summary>
-    public void EnsureAllUsed()
+    /// <summary>
+    /// Бросает, если остались ключи, которые команда не прочитала, или позиционные аргументы там, где их не ждут:
+    /// путь, отбившийся от флага, иначе пропал бы молча.
+    /// </summary>
+    public void EnsureAllUsed(bool allowPositional = false)
     {
         foreach (string key in _values.Keys)
         {
@@ -83,6 +86,10 @@ public sealed class Args
             {
                 throw new ArgumentException($"unknown option --{key}");
             }
+        }
+        if (!allowPositional && Positional.Count > 0)
+        {
+            throw new ArgumentException($"unexpected argument '{Positional[0]}'");
         }
     }
 }

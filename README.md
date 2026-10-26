@@ -49,7 +49,7 @@ sim.cli/bin/Release/net10.0/glimmerfall-sim bench
 sim.cli/bin/Release/net10.0/glimmerfall-sim bot --policy kiter --runs 36 --acts 3
 tools/godot.sh --path game
 ```
-В окне спайка F1 переключает автопилот и ручное управление (WASD или стик, пробел — рывок, Q — свап, 1–3 — выбор).
+В окне спайка F1 переключает автопилот и ручное управление (WASD или стик, пробел — рывок, Q — свап, 1–3 — выбор). Играбельный акт вместо орды: `tools/godot.sh --path game -- --scenario run --manual`.
 
 ## Права
 © 2026 Artem Chikolaev. Все права защищены. Коммерческий проект с оригинальной IP; сторонние ассеты допускаются только по лицензии, разрешающей коммерческое использование без share-alike.

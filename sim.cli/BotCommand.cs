@@ -52,7 +52,7 @@ public static class BotCommand
         string baseSeed = args.Get("seed", "bot");
         int jobs = args.GetInt("jobs", Environment.ProcessorCount);
         int maxTicks = args.GetInt("max-minutes", template.Acts * 12) * 60 * SimConstants.TicksPerSecond;
-        string json = args.Get("json", "");
+        string dump = args.Get("dump", "");
         bool verbose = args.Has("verbose");
         int trace = args.GetInt("trace", -1);
         args.EnsureAllUsed();
@@ -81,10 +81,10 @@ public static class BotCommand
                 Console.WriteLine($"#{r.Index} {r.Outcome} {RunSetup.Clock(r.Ticks)} lvl {r.Level} kills {r.Kills} killer {r.Killer} digest {r.Digest}");
             }
         }
-        if (json.Length > 0)
+        if (dump.Length > 0)
         {
-            File.WriteAllText(json, JsonSerializer.Serialize(records, new JsonSerializerOptions { WriteIndented = true }));
-            Console.WriteLine($"json → {json}");
+            File.WriteAllText(dump, JsonSerializer.Serialize(records, new JsonSerializerOptions { WriteIndented = true }));
+            Console.WriteLine($"json → {dump}");
         }
         return 0;
     }
