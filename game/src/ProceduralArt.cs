@@ -5,21 +5,11 @@ using Godot;
 namespace Glimmerfall.Game;
 
 /// <summary>
-/// Заглушки спайка, нарисованные кодом: свечения, квад MultiMesh, пол из мировых тонов палитры. Тинты врагов
-/// и героев — временные метки видов поверх листов манекенов, не стиль-библия (её цвета — в палитре).
+/// Заглушки спайка, нарисованные кодом: свечения, квад MultiMesh, пол из мировых тонов палитры. Тинты героев —
+/// цвета вспышек смены, не стиль-библия (её цвета — в палитре); у врагов тинтов нет — у каждого вида свой лист.
 /// </summary>
 public static class ProceduralArt
 {
-    public static readonly Color[] EnemyColors =
-    {
-        new(0.55f, 0.20f, 0.22f), // shambler
-        new(0.78f, 0.36f, 0.20f), // runner
-        new(0.46f, 0.26f, 0.42f), // brute
-        new(0.32f, 0.58f, 0.30f), // spitter
-        new(0.74f, 0.58f, 0.20f), // charger
-        new(0.90f, 0.16f, 0.48f), // ravager (элита)
-        new(0.96f, 0.86f, 0.32f), // gloom warden (босс)
-    };
 
     public static readonly Color[] HeroColors =
     {

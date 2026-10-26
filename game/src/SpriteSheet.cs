@@ -28,6 +28,7 @@ public sealed class SpriteSheet
         AnchorX = anchor[0].GetInt32();
         AnchorY = anchor[1].GetInt32();
         GridScale = root.GetProperty("grid")[0].GetInt32() / 640f;
+        TargetPx = root.GetProperty("source").TryGetProperty("target_px", out JsonElement target) ? target.GetSingle() : 48f;
         string image = root.GetProperty("image").GetString()!;
         Texture = GD.Load<Texture2D>($"res://art/sprites/{image}")
             ?? throw new InvalidOperationException($"лист {image} не импортирован: make import");
@@ -51,6 +52,9 @@ public sealed class SpriteSheet
 
     /// <summary>Во сколько раз сетка листа крупнее базовой 640×360 (1 или 1,5).</summary>
     public float GridScale { get; }
+
+    /// <summary>Рост силуэта в стойке на сетке 640×360 (ADR 0003 п. 3): портрет и надписи над фигурой — от него.</summary>
+    public float TargetPx { get; }
 
     public SpriteClip this[string clip] => _clips[clip];
 

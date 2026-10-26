@@ -5,7 +5,7 @@ namespace Glimmerfall.Game;
 
 /// <summary>
 /// Настройки игрока в user://settings.cfg. Сложность и длина забега идут в конфиг сима (тир лестницы и число актов) —
-/// поэтому они часть реплея; громкость, экран, тряска и FPS — только презентация.
+/// поэтому они часть реплея; громкость, экран, тряска, FPS и облики героев — только презентация.
 /// </summary>
 public sealed class GameSettings
 {
@@ -26,6 +26,9 @@ public sealed class GameSettings
     public bool ScreenShake = true;
     public bool ShowFps;
 
+    /// <summary>Выбранный облик каждого героя (лист из <see cref="GameText.Skins"/>) — косметика, не в конфиге сима.</summary>
+    public string[] Skins = GameText.DefaultSkins();
+
     public static GameSettings Load()
     {
         var settings = new GameSettings();
@@ -42,6 +45,15 @@ public sealed class GameSettings
         settings.Fullscreen = (bool)file.GetValue("video", "fullscreen", false);
         settings.ScreenShake = (bool)file.GetValue("video", "shake", true);
         settings.ShowFps = (bool)file.GetValue("video", "fps", false);
+        for (int hero = 0; hero < settings.Skins.Length; hero++)
+        {
+            string sheet = (string)file.GetValue("cosmetics", $"hero{hero}", settings.Skins[hero]);
+            // облик из старой версии или с другой машины, которого нет в каталоге, — базовый
+            if (Array.Exists(GameText.Skins[hero], skin => skin.Sheet == sheet))
+            {
+                settings.Skins[hero] = sheet;
+            }
+        }
         return settings;
     }
 
@@ -55,6 +67,10 @@ public sealed class GameSettings
         file.SetValue("video", "fullscreen", Fullscreen);
         file.SetValue("video", "shake", ScreenShake);
         file.SetValue("video", "fps", ShowFps);
+        for (int hero = 0; hero < Skins.Length; hero++)
+        {
+            file.SetValue("cosmetics", $"hero{hero}", Skins[hero]);
+        }
         file.Save(Path);
     }
 

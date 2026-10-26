@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using Glimmerfall.Sim;
 using Godot;
@@ -11,6 +12,7 @@ public partial class TitleScreen : Control
     private Button _first = null!;
 
     public event Action? NewRun;
+    public event Action? OpenWardrobe;
     public event Action? OpenSettings;
     public event Action? Quit;
 
@@ -39,6 +41,7 @@ public partial class TitleScreen : Control
         column.AddChild(new Control { CustomMinimumSize = new Vector2(0, 28) });
         _first = UiKit.Button("Новый забег", () => NewRun?.Invoke(), sfx);
         column.AddChild(_first);
+        column.AddChild(UiKit.Button("Гардероб", () => OpenWardrobe?.Invoke(), sfx));
         column.AddChild(UiKit.Button("Настройки", () => OpenSettings?.Invoke(), sfx));
         column.AddChild(UiKit.Button("Выход", () => Quit?.Invoke(), sfx));
         foreach (Node child in column.GetChildren())
@@ -171,6 +174,133 @@ public partial class SettingsPanel : Control
         control.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         row.AddChild(control);
         return row;
+    }
+}
+
+/// <summary>
+/// Гардероб: облик каждого героя — живое превью (фигура в стойке медленно поворачивается), название облика и
+/// стрелки выбора. Косметика: выбор пишется в настройки игрока и на сим не влияет; сохраняется при закрытии.
+/// </summary>
+public partial class WardrobeScreen : Control
+{
+    private const float TurnSeconds = 1.1f;
+
+    private readonly List<Slot> _slots = new();
+    private GameSettings _settings = null!;
+    private Sfx _sfx = null!;
+    private Button _back = null!;
+    private float _time;
+
+    public event Action? Closed;
+
+    public void Build(GameSettings settings, Sfx sfx, string gridSuffix)
+    {
+        _settings = settings;
+        _sfx = sfx;
+        SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        AddChild(UiKit.Scrim(0.6f));
+        var panel = new PanelContainer();
+        var column = new VBoxContainer();
+        column.AddThemeConstantOverride("separation", 14);
+        panel.AddChild(column);
+        var title = UiKit.Text("Гардероб", 34, UiKit.Glow, serif: true);
+        title.HorizontalAlignment = HorizontalAlignment.Center;
+        column.AddChild(title);
+        var note = UiKit.Text("Облик меняет только вид героя — не силу и не рекорды", 16, UiKit.WaxDim);
+        note.HorizontalAlignment = HorizontalAlignment.Center;
+        column.AddChild(note);
+        var row = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        row.AddThemeConstantOverride("separation", 28);
+        for (int hero = 0; hero < GameText.Skins.Length; hero++)
+        {
+            row.AddChild(BuildSlot(hero, gridSuffix));
+        }
+        column.AddChild(row);
+        _back = UiKit.Button("Назад", () => Closed?.Invoke(), sfx, 200);
+        _back.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
+        column.AddChild(_back);
+        AddChild(UiKit.Centered(panel));
+    }
+
+    public void FocusFirst() => _back.GrabFocus();
+
+    private Control BuildSlot(int hero, string gridSuffix)
+    {
+        var slot = new Slot
+        {
+            Hero = hero,
+            Sheets = Array.ConvertAll(GameText.Skins[hero], skin => SpriteSheet.Load(skin.Sheet + gridSuffix)),
+            Atlas = new AtlasTexture(),
+        };
+        var box = new VBoxContainer { CustomMinimumSize = new Vector2(230, 0) };
+        box.AddThemeConstantOverride("separation", 8);
+        var name = UiKit.Text(GameText.HeroNames[hero], 24, UiKit.Wax, serif: true);
+        name.HorizontalAlignment = HorizontalAlignment.Center;
+        box.AddChild(name);
+        slot.Preview = new TextureRect
+        {
+            Texture = slot.Atlas,
+            CustomMinimumSize = new Vector2(230, 250),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            TextureFilter = TextureFilterEnum.Nearest,
+        };
+        box.AddChild(slot.Preview);
+        var arrows = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        arrows.AddThemeConstantOverride("separation", 8);
+        arrows.AddChild(UiKit.Button("◀", () => Cycle(slot, -1), _sfx, 48));
+        slot.Label = UiKit.Text("", 18, UiKit.Glow, serif: true);
+        slot.Label.CustomMinimumSize = new Vector2(120, 0);
+        slot.Label.HorizontalAlignment = HorizontalAlignment.Center;
+        slot.Label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        arrows.AddChild(slot.Label);
+        arrows.AddChild(UiKit.Button("▶", () => Cycle(slot, 1), _sfx, 48));
+        box.AddChild(arrows);
+        _slots.Add(slot);
+        Select(slot);
+        return box;
+    }
+
+    private void Cycle(Slot slot, int step)
+    {
+        (string Sheet, string Name)[] skins = GameText.Skins[slot.Hero];
+        _settings.Skins[slot.Hero] = skins[((slot.Index + step) % skins.Length + skins.Length) % skins.Length].Sheet;
+        Select(slot);
+    }
+
+    private void Select(Slot slot)
+    {
+        slot.Index = Math.Max(0, Array.FindIndex(GameText.Skins[slot.Hero], skin => skin.Sheet == _settings.Skins[slot.Hero]));
+        slot.Label.Text = GameText.Skins[slot.Hero][slot.Index].Name;
+    }
+
+    public override void _Process(double delta)
+    {
+        if (!Visible)
+        {
+            return;
+        }
+        _time += (float)delta;
+        int direction = (int)(_time / TurnSeconds) % SpriteSheet.Directions.Length;
+        foreach (Slot slot in _slots)
+        {
+            SpriteSheet sheet = slot.Sheets[slot.Index];
+            SpriteClip idle = sheet["idle"];
+            slot.Atlas.Atlas = sheet.Texture;
+            slot.Atlas.Region = new Rect2(idle.FrameAt(_time) * sheet.CellWidth, idle.Row(direction) * sheet.CellHeight,
+                sheet.CellWidth, sheet.CellHeight);
+            slot.Preview.FlipH = idle.Flip(direction);
+        }
+    }
+
+    private sealed class Slot
+    {
+        public int Hero;
+        public int Index;
+        public SpriteSheet[] Sheets = Array.Empty<SpriteSheet>();
+        public AtlasTexture Atlas = null!;
+        public TextureRect Preview = null!;
+        public Label Label = null!;
     }
 }
 

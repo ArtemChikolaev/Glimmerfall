@@ -35,12 +35,14 @@ public partial class Main : Node
     private Control _ui = null!;
     private TitleScreen _title = null!;
     private SettingsPanel _settingsPanel = null!;
+    private WardrobeScreen _wardrobe = null!;
     private PauseMenu _pause = null!;
     private ResultScreen _result = null!;
     private Hud _hud = null!;
     private ChoiceCards _cards = null!;
     private Banner _banner = null!;
     private DamageNumbers _numbers = null!;
+    private PlaceMarkers _markers = null!;
     private TouchControls _touch = null!;
     private Label _debug = null!;
     private Mode _mode;
@@ -125,11 +127,13 @@ public partial class Main : Node
 
         _hud = new Hud();
         _ui.AddChild(_hud);
-        string suffix = _options.Grid == 960 ? "_960" : "";
-        _hud.Build(Array.ConvertAll(GameText.HeroSheets, id => SpriteSheet.Load(id + suffix)));
+        _hud.Build(HeroSheets());
         _numbers = new DamageNumbers();
         _ui.AddChild(_numbers);
         _numbers.Build(_host);
+        _markers = new PlaceMarkers();
+        _ui.AddChild(_markers);
+        _markers.Build(_host);
         _banner = new Banner();
         _ui.AddChild(_banner);
         _banner.Build();
@@ -154,8 +158,13 @@ public partial class Main : Node
         _ui.AddChild(_title);
         _title.Build(_sfx);
         _title.NewRun += StartRun;
+        _title.OpenWardrobe += OpenWardrobe;
         _title.OpenSettings += () => OpenSettings(Mode.Title);
         _title.Quit += () => GetTree().Quit(0);
+        _wardrobe = new WardrobeScreen();
+        _ui.AddChild(_wardrobe);
+        _wardrobe.Build(_settings, _sfx, GridSuffix);
+        _wardrobe.Closed += CloseWardrobe;
         _settingsPanel = new SettingsPanel();
         _ui.AddChild(_settingsPanel);
         _settingsPanel.Build(_settings, _sfx);
@@ -169,7 +178,7 @@ public partial class Main : Node
 
     private void HideAll()
     {
-        foreach (Control control in new Control[] { _hud, _numbers, _banner, _touch, _cards, _pause, _result, _title, _settingsPanel, _debug })
+        foreach (Control control in new Control[] { _hud, _numbers, _markers, _banner, _touch, _cards, _pause, _result, _title, _settingsPanel, _wardrobe, _debug })
         {
             control.Visible = false;
         }
@@ -180,7 +189,8 @@ public partial class Main : Node
     private void StartSession(SimConfig config, string seed, bool autopilot)
     {
         _session?.Dispose();
-        _session = new RunSession(config, seed, _host, _options.Screenshot != null || _options.CaptureUi != null ? 7 : null, autopilot);
+        _session = new RunSession(config, seed, _host, _options.Screenshot != null || _options.CaptureUi != null ? 7 : null, autopilot,
+            _settings.Skins);
         _numbers.Clear();
         _seenAct = -1;
         _seenBoss = false;
@@ -213,6 +223,7 @@ public partial class Main : Node
         _hud.Visible = true;
         _hud.ShowFps = _settings.ShowFps;
         _numbers.Visible = true;
+        _markers.Visible = true;
         _banner.Visible = false;
         _touch.Visible = true;
     }
@@ -243,6 +254,26 @@ public partial class Main : Node
     {
         _pause.Visible = false;
         _mode = Mode.Run;
+    }
+
+    /// <summary>Листы выбранных обликов героев на текущей сетке — для мира и портретов HUD.</summary>
+    private SpriteSheet[] HeroSheets() => Array.ConvertAll(_settings.Skins, id => SpriteSheet.Load(id + GridSuffix));
+
+    private string GridSuffix => _options.Grid == 960 ? "_960" : "";
+
+    private void OpenWardrobe()
+    {
+        _title.Visible = false;
+        _wardrobe.Visible = true;
+        _wardrobe.FocusFirst();
+    }
+
+    /// <summary>Гардероб закрыт: облики сохранены, портреты HUD обновлены, демо на титуле перезапущено в новых обликах.</summary>
+    private void CloseWardrobe()
+    {
+        _settings.Save();
+        _hud.SetPortraits(HeroSheets());
+        ShowTitle();
     }
 
     private void OpenSettings(Mode from)
@@ -280,6 +311,10 @@ public partial class Main : Node
             if (_settingsPanel.Visible)
             {
                 CloseSettings();
+            }
+            else if (_wardrobe.Visible)
+            {
+                CloseWardrobe();
             }
             else if (_mode == Mode.Run)
             {
@@ -395,6 +430,7 @@ public partial class Main : Node
         {
             _hud.Refresh(world, frozen ? 0f : seconds);
             _numbers.Advance(frozen ? 0f : seconds);
+            _markers.Refresh(world);
         }
         _touch.ShowLink(_mode == Mode.Run && world.Squad.LinkTicks > 0);
         Measure(delta, (Time.GetTicksUsec() - frameStart) / 1000.0, simMs);
@@ -423,6 +459,10 @@ public partial class Main : Node
         _numbers.Consume(events);
         foreach (SimEvent e in events)
         {
+            if (_options.CaptureCount > 0 && e.Type == _options.CaptureEvent && --_options.CaptureCount == 0)
+            {
+                _options.CaptureFrame = _frames + _options.CaptureDelay;
+            }
             switch (e.Type)
             {
                 case SimEventType.HeroHit:
@@ -438,22 +478,30 @@ public partial class Main : Node
                 case SimEventType.Slam:
                     AddTrauma(0.7f);
                     break;
+                // тяжёлый удар дугой, задевший врагов, чуть встряхивает камеру — вес секиры
+                case SimEventType.HeroAttack when e.Amount > 0 && _session.World.Config.HeroKinds[e.Kind].CleavePushPx.Raw > 0:
+                    AddTrauma(0.12f);
+                    break;
                 case SimEventType.Assist:
                     AddTrauma(0.25f);
-                    if (_options.CaptureAssist > 0 && --_options.CaptureAssist == 0)
-                    {
-                        _options.CaptureFrame = _frames + _options.CaptureDelay;
-                    }
                     break;
                 case SimEventType.Duet:
                     AddTrauma(0.65f);
-                    if (_options.CaptureDuet > 0 && --_options.CaptureDuet == 0)
-                    {
-                        _options.CaptureFrame = _frames + _options.CaptureDelay;
-                    }
                     break;
                 case SimEventType.EnemyKilled when e.Kind >= Sim.Content.EnemyIds.Ravager:
                     AddTrauma(0.45f);
+                    break;
+                case SimEventType.PlaceUsed:
+                    _banner.Show("Святилище", $"Сила отряда +{Rules.ShrineDamagePercent}% на {Rules.ShrineBuffTicks / SimConstants.TicksPerSecond} с",
+                        2.2f, MasterPalette.Instance["radiance2"]);
+                    AddTrauma(0.2f);
+                    break;
+                case SimEventType.PlaceAwake:
+                    _banner.Show("Алтарь пробуждён!", "Убей его стража — получишь дар", 2.6f, MasterPalette.Instance["crimson4"]);
+                    AddTrauma(0.5f);
+                    break;
+                case SimEventType.PlaceReward:
+                    _banner.Show("Дар алтаря", "Выбери благословение", 2.2f, MasterPalette.Instance["crimson4"]);
                     break;
             }
         }
@@ -559,7 +607,7 @@ public partial class Main : Node
             SmokeFlow();
         }
         bool cardsReady = _options.CaptureCards && _cards.Visible && _frames > 10;
-        bool byFrame = !_options.CaptureCards && _options.CaptureAssist == 0 && _options.CaptureDuet == 0 && _frames >= _options.CaptureFrame;
+        bool byFrame = !_options.CaptureCards && _options.CaptureCount == 0 && _frames >= _options.CaptureFrame;
         if (_options.CaptureUi != null && !_uiCaptured && (cardsReady || byFrame))
         {
             _uiCaptured = true;
@@ -575,6 +623,10 @@ public partial class Main : Node
                 case "result":
                     _mode = Mode.Result;
                     _result.Show(_session!.World, _settings);
+                    break;
+                case "wardrobe":
+                    HideAll();
+                    OpenWardrobe();
                     break;
             }
             CallDeferred(MethodName.CaptureWindow);

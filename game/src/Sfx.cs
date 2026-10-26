@@ -31,6 +31,10 @@ public enum Sound
     Duet,
     Thunder,
     Blast,
+    Slash,
+    Cleave,
+    Shrine,
+    Altar,
 }
 
 /// <summary>
@@ -149,6 +153,15 @@ public partial class Sfx : Node
                     Play(Sound.Duet, 1f, 0f);
                     strikes = 0;
                     break;
+                case SimEventType.PlaceUsed:
+                    Play(Sound.Shrine, 0.9f, 0f);
+                    break;
+                case SimEventType.PlaceAwake:
+                    Play(Sound.Altar, 1f, 0f);
+                    break;
+                case SimEventType.PlaceReward:
+                    Play(Sound.LevelUp, 0.9f, 0f);
+                    break;
                 case SimEventType.DuetStrike:
                 {
                     bool storm = (DuetKind)e.Kind == DuetKind.IceStorm;
@@ -168,7 +181,9 @@ public partial class Sfx : Node
                     Play(Sound.HeroDown, 1f, 0f);
                     break;
                 case SimEventType.HeroAttack:
-                    Play(e.Kind switch { HeroIds.Warden => Sound.CastFrost, HeroIds.Sparkwright => Sound.CastSpark, _ => Sound.CastFire }, 0.5f, 0.08f);
+                    // фальшион свистит, секира гудит и бьёт; посох — разряд
+                    Play(e.Kind switch { HeroIds.Warden => Sound.Cleave, HeroIds.Sparkwright => Sound.CastSpark, _ => Sound.Slash },
+                        e.Kind == HeroIds.Sparkwright ? 0.5f : 0.6f, 0.1f);
                     break;
                 case SimEventType.Dash:
                     Play(Sound.Dash, 0.7f);
@@ -229,6 +244,10 @@ public partial class Sfx : Node
                 Sweep(880, 1320, 0.45, 0.18, 0.18), Sweep(1320, 1760, 0.45, 0.15, 0.12)), 1.7f),
             Sound.Thunder => Drive(Mix(Crackle(rng, 0.22, 0.7), Noise(rng, 0.3, 900, 0.1, 0.5), Sweep(110, 45, 0.3, 0.12, 0.5)), 1.5f),
             Sound.Blast => Drive(Mix(Sweep(150, 45, 0.35, 0.12, 0.9), Noise(rng, 0.35, 1400, 0.1, 0.7)), 1.9f),
+            Sound.Shrine => Arpeggio(new[] { 659.0, 784.0, 988.0, 1319.0 }, 0.06, 0.45, 0.3),
+            Sound.Altar => Drive(Mix(Saw(46, 0.9, 0.6), Swell(Noise(rng, 0.8, 500, 0.3, 0.5), 0.2), Sweep(90, 40, 0.8, 0.3, 0.6)), 1.6f),
+            Sound.Slash => Swell(NoiseSweep(rng, 0.14, 4200, 900, 0.5), 0.01),
+            Sound.Cleave => Mix(Swell(NoiseSweep(rng, 0.24, 2400, 380, 0.6), 0.02), Sweep(120, 55, 0.2, 0.08, 0.55)),
             _ => new float[1],
         };
     }

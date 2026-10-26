@@ -26,8 +26,9 @@ public partial class WorldView : Node2D
     private Node2D _fx = null!;
     private Sprite2D _ground = null!;
     private MapDecor _decor = null!;
-    private SpriteLayer _ghouls = null!;
-    private SpriteLayer _brutes = null!;
+    /// <summary>Свой лист у каждого вида врага (по EnemyIds); ёмкость — сколько их бывает в кадре.</summary>
+    private readonly SpriteLayer[] _enemyLayers = new SpriteLayer[EnemyIds.Count];
+    private static readonly int[] EnemyLayerCapacity = { 1024, 512, 256, 256, 128, 32, 4 };
     private readonly SpriteLayer[] _heroLayers = new SpriteLayer[HeroIds.Count];
     private PointLight2D _lantern = null!;
     private InstanceLayer _gems = null!;
@@ -38,6 +39,11 @@ public partial class WorldView : Node2D
     private InstanceLayer _rings = null!;
     private TelegraphOverlay _telegraphs = null!;
     private LightningArcs _arcs = null!;
+    private SlashArcs _slashes = null!;
+    private PlaceRings _placeRings = null!;
+    private SpriteLayer _shrines = null!;
+    private SpriteLayer _altars = null!;
+    private readonly PointLight2D[] _placeLights = new PointLight2D[PlacePool.Capacity];
     private Particles _particles = null!;
     private readonly Rings _ringFx = new();
     private readonly List<PendingStrike> _strikes = new();
@@ -57,7 +63,7 @@ public partial class WorldView : Node2D
     public int VisibleEnemies { get; private set; }
 
     /// <summary>Сетка 640×360 или 960×540: листы с суффиксом _960 рисуются тем же размером в мире.</summary>
-    public void Init(World world, WorldHost host, int? particleSeed)
+    public void Init(World world, WorldHost host, int? particleSeed, string[] heroSheets)
     {
         _world = world;
         _host = host;
@@ -86,11 +92,20 @@ public partial class WorldView : Node2D
         AddChild(_ground);
         _decor = new MapDecor();
         AddChild(_decor);
-        _ghouls = AddSprites(new SpriteLayer(SpriteSheet.Load("ghoul" + suffix), 1024));
-        _brutes = AddSprites(new SpriteLayer(SpriteSheet.Load("brute" + suffix), 64));
+        _shrines = AddSprites(new SpriteLayer(SpriteSheet.Load("shrine" + suffix), PlacePool.Capacity));
+        _altars = AddSprites(new SpriteLayer(SpriteSheet.Load("altar" + suffix), PlacePool.Capacity));
+        for (int i = 0; i < PlacePool.Capacity; i++)
+        {
+            _placeLights[i] = new PointLight2D { Texture = lightTexture, TextureScale = 1.8f, Visible = false };
+            AddChild(_placeLights[i]);
+        }
+        for (int k = 0; k < EnemyIds.Count; k++)
+        {
+            _enemyLayers[k] = AddSprites(new SpriteLayer(SpriteSheet.Load(GameText.EnemySheets[k] + suffix), EnemyLayerCapacity[k]));
+        }
         for (int k = 0; k < HeroIds.Count; k++)
         {
-            _heroLayers[k] = AddSprites(new SpriteLayer(SpriteSheet.Load(GameText.HeroSheets[k] + suffix), 16));
+            _heroLayers[k] = AddSprites(new SpriteLayer(SpriteSheet.Load(heroSheets[k] + suffix), 16));
         }
         _hero.Layers = _heroLayers;
         _lantern = new PointLight2D { Texture = lightTexture, Color = palette["radiance2"], Energy = 1.05f, TextureScale = 3.6f };
@@ -106,9 +121,18 @@ public partial class WorldView : Node2D
         _sparks = AddLayer(new InstanceLayer(glow, additive, 1024));
         _arcs = new LightningArcs { Material = additive };
         _fx.AddChild(_arcs);
+        _slashes = new SlashArcs { Material = additive };
+        _fx.AddChild(_slashes);
+        _placeRings = new PlaceRings();
+        _fx.AddChild(_placeRings);
         _telegraphs = new TelegraphOverlay();
         _fx.AddChild(_telegraphs);
-        _decor.Init(suffix, world.Seed, _particles, lightTexture);
+        var places = new List<Vector2>();
+        for (int i = 0; i < world.Places.Count; i++)
+        {
+            places.Add(new Vector2(world.Places.X[i].Raw * FixToFloat, world.Places.Y[i].Raw * FixToFloat));
+        }
+        _decor.Init(suffix, world.Seed, _particles, lightTexture, places);
         host.Darkness.Color = new Color(0.56f, 0.53f, 0.64f);
         Array.Fill(_kickHandle, -1);
     }
@@ -137,8 +161,11 @@ public partial class WorldView : Node2D
         {
             layer.SetMask(on, new Color(1, 0, 0));
         }
-        _ghouls.SetMask(on, new Color(0, 1, 0));
-        _brutes.SetMask(on, new Color(0, 0, 1));
+        for (int k = 0; k < EnemyIds.Count; k++)
+        {
+            bool big = _world.Config.EnemyKinds[k].Elite;
+            _enemyLayers[k].SetMask(on, big ? new Color(0, 0, 1) : new Color(0, 1, 0));
+        }
         _ground.Visible = !on;
         _decor.Visible = !on;
         _lantern.Visible = !on;
@@ -207,7 +234,15 @@ public partial class WorldView : Node2D
                 {
                     Element el = ElementOf(e.Kind);
                     _hero.Attack(dx, dy);
-                    _particles.Spray(x + dx * 10, y - 14 + dy * 10, 6, el.Spark, dx, dy, 0.5f, 90f, 0.18f, 3f);
+                    HeroKind hero = _world.Config.HeroKinds[e.Kind];
+                    if (hero.Pattern == AttackPattern.Cleave)
+                    {
+                        SlashFx(hero, el, x, y, dx, dy);
+                    }
+                    else
+                    {
+                        _particles.Spray(x + dx * 10, y - 14 + dy * 10, 6, el.Spark, dx, dy, 0.5f, 90f, 0.18f, 3f);
+                    }
                     break;
                 }
                 case SimEventType.EnemyFired:
@@ -244,6 +279,35 @@ public partial class WorldView : Node2D
                     break;
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// Удар дугой (ближний бой): след клинка стихии героя по дуге досягаемости — замах проходит за десятые доли
+    /// секунды и гаснет, искры срываются с кромки наружу; тяжёлый удар шире, дольше и бьёт кольцом по земле.
+    /// Дуга и досягаемость — те же функции правил, что в симе.
+    /// </summary>
+    private void SlashFx(HeroKind hero, Element el, float x, float y, float dx, float dy)
+    {
+        float reach = hero.RangePx.Raw * FixToFloat;
+        float arc = Rules.CleaveArc(hero, _world.BlessingLevels[(int)Blessing.Volley]) * MathF.Tau / FixMath.FullTurn;
+        float facing = MathF.Atan2(dy, dx);
+        bool heavy = hero.CleavePushPx.Raw > 0;
+        var center = new Vector2(x, y - 10);
+        _slashes.Add(center, facing, arc, reach, heavy ? 0.28f : 0.18f, heavy ? 12f : 7f, el.Glow, el.Core);
+        int sparks = heavy ? 16 : 9;
+        for (int k = 0; k < sparks; k++)
+        {
+            float a = facing - arc + 2 * arc * k / (sparks - 1);
+            float ex = MathF.Cos(a);
+            float ey = MathF.Sin(a);
+            _particles.Spray(center.X + ex * reach, center.Y + ey * reach * SlashArcs.Squash, 2, k % 3 == 0 ? el.Core : el.Spark,
+                ex, ey, 0.4f, heavy ? 140f : 110f, 0.25f, 3f);
+        }
+        if (heavy)
+        {
+            _ringFx.Add(x, y - 4, 6, reach * 0.7f, 0.25f, el.Core);
+            _particles.Burst(x + dx * reach * 0.6f, y - 4 + dy * reach * 0.5f, 10, MasterPalette.Instance["stone4"], 70f, 0.4f, 4f);
         }
     }
 
@@ -322,6 +386,57 @@ public partial class WorldView : Node2D
     }
 
     /// <summary>
+    /// Места акта (святилища и алтари сима): реквизит по состоянию — растраченный темнеет, свет — золотой у святилища и
+    /// красный у алтаря (у пробуждённого бьётся), искры над ними; кольцо круга и прогресс постоя — в слое эффектов.
+    /// Пока действует сила святилища, вокруг героя кружат золотые искры.
+    /// </summary>
+    private void DrawPlaces(Squad squad, float frameSeconds)
+    {
+        PlacePool p = _world.Places;
+        MasterPalette palette = MasterPalette.Instance;
+        _shrines.Begin();
+        _altars.Begin();
+        for (int i = 0; i < PlacePool.Capacity; i++)
+        {
+            PointLight2D light = _placeLights[i];
+            if (i >= p.Count)
+            {
+                light.Visible = false;
+                continue;
+            }
+            float x = p.X[i].Raw * FixToFloat;
+            float y = p.Y[i].Raw * FixToFloat;
+            bool shrine = p.Kind[i] == PlaceKind.Shrine;
+            PlaceState state = p.State[i];
+            SpriteLayer layer = shrine ? _shrines : _altars;
+            layer.Add(x, y, 0, layer.Sheet["idle"].Row(0), false, state == PlaceState.Spent ? new Color(0.45f, 0.45f, 0.5f) : Colors.White);
+            bool near = Math.Abs(x - HeroPosition.X) < 900 && Math.Abs(y - HeroPosition.Y) < 700;
+            light.Visible = near && state != PlaceState.Spent;
+            light.Position = new Vector2(x, y - 22);
+            float pulse = 0.5f + 0.5f * MathF.Sin(_time * (state == PlaceState.Awake ? 9f : 3f) + i);
+            light.Color = shrine ? palette["radiance2"] : palette["crimson3"];
+            light.Energy = shrine ? 0.85f + 0.25f * pulse : state == PlaceState.Awake ? 1.1f + 0.6f * pulse : 0.45f + 0.2f * pulse;
+            if (!near || frameSeconds <= 0f || state == PlaceState.Spent)
+            {
+                continue;
+            }
+            if (_particles.Random01() < frameSeconds * (state == PlaceState.Awake ? 40f : 8f))
+            {
+                Color mote = shrine ? palette["radiance2"] : palette["fire3"];
+                _particles.Trail(x + (_particles.Random01() * 2 - 1) * 14f, y - 16, mote, 1.0f, 3f, 8f, rise: 34f);
+            }
+        }
+        _shrines.End();
+        _altars.End();
+        _placeRings.Refresh(_world);
+        if (squad.ShrineTicks > 0 && frameSeconds > 0f && _particles.Random01() < frameSeconds * 30f)
+        {
+            float a = _particles.Random01() * MathF.Tau;
+            _particles.Trail(HeroPosition.X + MathF.Cos(a) * 14f, HeroPosition.Y - 10 + MathF.Sin(a) * 8f, palette["radiance2"], 0.7f, 3f, 6f, rise: 30f);
+        }
+    }
+
+    /// <summary>
     /// Связка: пока открыто окно после ассиста, выпрыгнувший герой ждёт рядом, а между ним и активным бегут огни
     /// обеих стихий — подсказка «жми свап». К концу окна огни мигают чаще.
     /// </summary>
@@ -384,6 +499,7 @@ public partial class WorldView : Node2D
         _particles.Update(frameSeconds);
         _ringFx.Update(frameSeconds);
         _arcs.Advance(frameSeconds);
+        _slashes.Advance(frameSeconds);
         Squad squad = w.Squad;
         HeroPosition = new Vector2(Lerp(squad.PrevX, squad.X, alpha), Lerp(squad.PrevY, squad.Y, alpha));
         ReleaseStrikes(frameSeconds);
@@ -393,6 +509,7 @@ public partial class WorldView : Node2D
         _flames.Begin();
         _decor.Render(HeroPosition, half, frameSeconds, _flames);
         _flames.End();
+        DrawPlaces(squad, frameSeconds);
 
         _gems.Begin();
         GemPool g = w.Gems;
@@ -407,12 +524,16 @@ public partial class WorldView : Node2D
         }
         _gems.End();
 
-        _ghouls.Begin();
-        _brutes.Begin();
+        foreach (SpriteLayer layer in _enemyLayers)
+        {
+            layer.Begin();
+        }
         DrawCorpses(frameSeconds, view);
         DrawEnemies(alpha, view, frameSeconds);
-        _ghouls.End();
-        _brutes.End();
+        foreach (SpriteLayer layer in _enemyLayers)
+        {
+            layer.End();
+        }
 
         _shots.Begin();
         ShotPool s = w.Shots;
@@ -450,7 +571,11 @@ public partial class WorldView : Node2D
         _lantern.Position = HeroPosition + new Vector2(0, -12);
         _lantern.Energy = 1.0f + 0.06f * MathF.Sin(_time * 11f) * MathF.Sin(_time * 5.3f);
         _telegraphs.Refresh(w, alpha);
-        DrawnInstances = _gems.Count + _ghouls.Count + _brutes.Count + _shots.Count + _projectiles.Count + _sparks.Count;
+        DrawnInstances = _gems.Count + _shots.Count + _projectiles.Count + _sparks.Count;
+        foreach (SpriteLayer layer in _enemyLayers)
+        {
+            DrawnInstances += layer.Count;
+        }
         foreach (SpriteLayer layer in _heroLayers)
         {
             DrawnInstances += layer.Count;
@@ -544,11 +669,9 @@ public partial class WorldView : Node2D
                 clip = sheet["run"];
                 frame = clip.FrameAt(_time + (i * 0.618f % 1f) * clip.Duration);
             }
-            Color tint = Colors.White.Lerp(ProceduralArt.EnemyColors[e.Kind[i]], 0.28f);
             // крупных бьют непрерывно — полная вспышка прятала бы фигуру; им — слабее
-            float flash = e.HitFlash[i] > 0 ? e.HitFlash[i] / 6f * (layer == _brutes ? 0.35f : 0.8f) : 0f;
-            int scale = kind.Behavior == EnemyBehavior.Boss ? 2 : 1;
-            layer.Add(x, y, frame, clip.Row(direction), clip.Flip(direction), tint, flash, scale);
+            float flash = e.HitFlash[i] > 0 ? e.HitFlash[i] / 6f * (kind.Elite ? 0.35f : 0.8f) : 0f;
+            layer.Add(x, y, frame, clip.Row(direction), clip.Flip(direction), Colors.White, flash);
         }
         VisibleEnemies = visible;
     }
@@ -594,9 +717,7 @@ public partial class WorldView : Node2D
             _corpses[k] = c;
             if (view.HasPoint(new Vector2(c.X, c.Y)))
             {
-                Color tint = Colors.White.Lerp(ProceduralArt.EnemyColors[c.Kind], 0.28f) * new Color(1, 1, 1, fade);
-                int scale = kind.Behavior == EnemyBehavior.Boss ? 2 : 1;
-                layer.Add(c.X, c.Y, death.FrameAt(c.Age), death.Row(0), death.Flip(0), tint, 0f, scale, corpse: true);
+                layer.Add(c.X, c.Y, death.FrameAt(c.Age), death.Row(0), death.Flip(0), new Color(1, 1, 1, fade), 0f, corpse: true);
             }
         }
     }
@@ -605,8 +726,8 @@ public partial class WorldView : Node2D
     private Element ElementOf(int heroKind) =>
         heroKind >= 0 && heroKind < _world.Config.HeroKinds.Length ? _elements[(int)_world.Config.HeroKinds[heroKind].Element] : _elements[0];
 
-    /// <summary>Лист элиты (60 px, ADR 0003: элиты 48–72) — только элитам и боссу; рядовые любого радиуса — гули.</summary>
-    private SpriteLayer LayerFor(EnemyKind kind) => kind.Elite || kind.Behavior == EnemyBehavior.Boss ? _brutes : _ghouls;
+    /// <summary>Лист вида врага: скелеты, гули, демоны, лучники, рогачи, элита и босс — каждый своей моделью.</summary>
+    private SpriteLayer LayerFor(EnemyKind kind) => _enemyLayers[kind.Id];
 
     private static int WindupTicks(EnemyKind kind) => kind.Behavior switch
     {
@@ -958,6 +1079,127 @@ public partial class LightningArcs : Node2D
         public Color Glow;
         public Color Core;
         public float Age;
+    }
+}
+
+/// <summary>
+/// След удара дугой: полумесяц по кромке досягаемости. Передний край пробегает дугу за первую треть жизни (замах),
+/// хвост тоньше головы (смаз), дальше след гаснет; ореол шире и прозрачнее ядра. Рисуется аддитивно поверх мира.
+/// </summary>
+public partial class SlashArcs : Node2D
+{
+    /// <summary>Сжатие по вертикали: дуга лежит на земле под углом камеры, как кольца эффектов.</summary>
+    public const float Squash = 0.8f;
+    private const int Segments = 14;
+
+    private readonly List<Slash> _slashes = new();
+    private readonly Vector2[] _band = new Vector2[2 * (Segments + 1)];
+
+    public void Add(Vector2 center, float facing, float arc, float radius, float life, float width, Color glow, Color core) =>
+        _slashes.Add(new Slash { Center = center, Facing = facing, Arc = arc, Radius = radius, Life = life, Width = width, Glow = glow, Core = core });
+
+    public void Advance(float seconds)
+    {
+        for (int i = _slashes.Count - 1; i >= 0; i--)
+        {
+            Slash s = _slashes[i];
+            s.Age += seconds;
+            if (s.Age >= s.Life)
+            {
+                _slashes.RemoveAt(i);
+                continue;
+            }
+            _slashes[i] = s;
+        }
+        QueueRedraw();
+    }
+
+    public override void _Draw()
+    {
+        foreach (Slash s in _slashes)
+        {
+            float sweep = Math.Min(1f, s.Age / (s.Life * 0.35f));
+            float fade = 1f - Math.Max(0f, s.Age - s.Life * 0.35f) / (s.Life * 0.65f);
+            Band(s, sweep, s.Width * 1.8f, new Color(s.Glow, 0.45f * fade));
+            Band(s, sweep, s.Width * 0.6f, new Color(s.Core, 0.95f * fade));
+        }
+    }
+
+    private void Band(Slash s, float sweep, float width, Color color)
+    {
+        float start = s.Facing - s.Arc;
+        float span = 2 * s.Arc * sweep;
+        if (span < 0.05f)
+        {
+            return;   // вырожденный многоугольник Godot не триангулирует
+        }
+        for (int k = 0; k <= Segments; k++)
+        {
+            float t = (float)k / Segments;
+            float a = start + span * t;
+            // голова (свежий край) толще хвоста: t = 1 — передний край замаха
+            float w = width * (0.25f + 0.75f * t);
+            var dir = new Vector2(MathF.Cos(a), MathF.Sin(a) * Squash);
+            _band[k] = s.Center + dir * (s.Radius + w * 0.5f);
+            _band[2 * Segments + 1 - k] = s.Center + dir * (s.Radius - w * 0.5f);
+        }
+        DrawColoredPolygon(_band, color);
+    }
+
+    private struct Slash
+    {
+        public Vector2 Center;
+        public float Facing;
+        public float Arc;
+        public float Radius;
+        public float Life;
+        public float Width;
+        public Color Glow;
+        public Color Core;
+        public float Age;
+    }
+}
+
+/// <summary>
+/// Круги мест акта поверх мира (не темнеют во тьме): граница круга нетронутого святилища и алтаря и дуга прогресса
+/// постоя в святилище — видно, сколько ещё стоять. Радиус — то же правило сима.
+/// </summary>
+public partial class PlaceRings : Node2D
+{
+    private World? _world;
+
+    public void Refresh(World world)
+    {
+        _world = world;
+        QueueRedraw();
+    }
+
+    public override void _Draw()
+    {
+        if (_world == null)
+        {
+            return;
+        }
+        PlacePool p = _world.Places;
+        float radius = Rules.PlaceRadiusPx.Raw / (float)Fix.OneRaw;
+        MasterPalette palette = MasterPalette.Instance;
+        for (int i = 0; i < p.Count; i++)
+        {
+            if (p.State[i] != PlaceState.Dormant)
+            {
+                continue;
+            }
+            var center = new Vector2(p.X[i].Raw, p.Y[i].Raw) / Fix.OneRaw;
+            bool shrine = p.Kind[i] == PlaceKind.Shrine;
+            DrawSetTransform(center, 0f, new Vector2(1f, 0.75f));
+            DrawArc(Vector2.Zero, radius, 0, Mathf.Tau, 40, new Color(shrine ? palette["radiance2"] : palette["crimson3"], 0.45f), 1.5f);
+            if (shrine && p.Progress[i] > 0)
+            {
+                float fill = Math.Min(1f, (float)p.Progress[i] / Rules.ShrineChannelTicks);
+                DrawArc(Vector2.Zero, radius, -Mathf.Pi / 2, -Mathf.Pi / 2 + Mathf.Tau * fill, 40, new Color(palette["radiance3"], 0.95f), 3f);
+            }
+        }
+        DrawSetTransform(Vector2.Zero, 0f, Vector2.One);
     }
 }
 

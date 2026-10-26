@@ -92,10 +92,9 @@ void fragment() {
     public void Begin() => _count = 0;
 
     /// <summary>
-    /// Кадр (столбец, ряд) с опорой в точке мира (x, y); scale — целый множитель текселя (босс ×2);
-    /// corpse — труп: под живыми и не входит в маску читаемости.
+    /// Кадр (столбец, ряд) с опорой в точке мира (x, y); corpse — труп: под живыми и не входит в маску читаемости.
     /// </summary>
-    public void Add(float x, float y, int column, int row, bool flip, Color modulate, float flash = 0f, int scale = 1, bool corpse = false)
+    public void Add(float x, float y, int column, int row, bool flip, Color modulate, float flash = 0f, bool corpse = false)
     {
         if (_count == _items.Length)
         {
@@ -103,7 +102,7 @@ void fragment() {
             Array.Resize(ref _keys, _items.Length);
             Array.Resize(ref _order, _items.Length);
         }
-        _items[_count] = new Item { X = x, Y = y, Column = column, Row = row, Flip = flip, Modulate = modulate, Flash = flash, Scale = scale, Corpse = corpse };
+        _items[_count] = new Item { X = x, Y = y, Column = column, Row = row, Flip = flip, Modulate = modulate, Flash = flash, Corpse = corpse };
         _keys[_count] = corpse ? y + CorpseDepth : y;
         _order[_count] = _count;
         _count++;
@@ -126,7 +125,7 @@ void fragment() {
         for (int k = 0; k < _count; k++)
         {
             ref Item it = ref _items[_order[k]];
-            float texel = _texel * it.Scale;
+            float texel = _texel;
             float w = _sheet.CellWidth * texel;
             float h = _sheet.CellHeight * texel;
             float sx = it.Flip ? -1f : 1f;
@@ -170,7 +169,6 @@ void fragment() {
         public bool Flip;
         public Color Modulate;
         public float Flash;
-        public int Scale;
         public bool Corpse;
     }
 }

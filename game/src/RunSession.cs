@@ -20,13 +20,14 @@ public sealed class RunSession
 
     private double _accumulator;
 
-    public RunSession(SimConfig config, string seed, WorldHost host, int? particleSeed, bool autopilot)
+    /// <param name="heroSheets">Облики героев (листы по HeroIds) — косметика из настроек, в сим не идут.</param>
+    public RunSession(SimConfig config, string seed, WorldHost host, int? particleSeed, bool autopilot, string[] heroSheets)
     {
         Seed = seed;
         World = new World(config, SeedHash.FromString(seed)) { CollectEvents = true };
         View = new WorldView();
         host.World.AddChild(View);
-        View.Init(World, host, particleSeed);
+        View.Init(World, host, particleSeed, heroSheets);
         Autopilot = autopilot ? new KiterPolicy() : null;
     }
 

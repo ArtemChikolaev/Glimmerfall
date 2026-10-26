@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 using Glimmerfall.Sim;
 using Glimmerfall.Sim.Content;
@@ -13,15 +14,27 @@ public static class GameText
 {
     public static readonly string[] HeroNames = { "Фонарщик", "Страж", "Искровед" };
 
-    /// <summary>Лист героя по виду (HeroIds): у каждого своя модель на общем риге.</summary>
-    public static readonly string[] HeroSheets = { "lamplighter", "warden", "sparkwright" };
+    /// <summary>
+    /// Облики героев по виду (HeroIds): лист конвейера и название, первый — базовый. Косметика — только
+    /// презентация: выбор живёт в настройках игрока, на сим и сид не влияет (CLAUDE.md).
+    /// </summary>
+    public static readonly (string Sheet, string Name)[][] Skins =
+    {
+        new[] { ("lamplighter", "Палач"), ("lamplighter_ashen", "Пепельный палач") },
+        new[] { ("warden", "Северный громила"), ("warden_bloodbear", "Кровавый медведь") },
+        new[] { ("sparkwright", "Оккультист бури"), ("sparkwright_boneseer", "Костяной провидец") },
+    };
+
+    public static string[] DefaultSkins() => Array.ConvertAll(Skins, skins => skins[0].Sheet);
 
     /// <summary>Стихия — по <see cref="Element"/> из данных сима: по паре стихий выбирается дуэт связки.</summary>
     public static readonly string[] ElementNames = { "огонь", "мороз", "молния" };
 
     /// <summary>Дуэт-приёмы связки по <see cref="DuetKind"/>.</summary>
     public static readonly string[] DuetNames = { "Паровой взрыв", "Ледяная гроза", "Огненный шторм" };
-    public static readonly string[] EnemyNames = { "Бродяга", "Бегун", "Громила", "Плевальщик", "Таран", "Опустошитель", "Страж мрака" };
+    /// <summary>Враги по EnemyIds: имя и лист. Имена сима (shambler…) — для оверрайдов и CLI, в игре — эти.</summary>
+    public static readonly string[] EnemyNames = { "Скелет", "Гуль", "Демон", "Костяной лучник", "Рогач", "Опустошитель", "Страж мрака" };
+    public static readonly string[] EnemySheets = { "skeleton", "ghoul", "brute", "skeleton_archer", "horned", "ravager", "gloom_warden" };
     public static readonly string[] ActNames = { "Угасающий тракт", "Погост", "Собор Тьмы", "Пепельный предел" };
 
     public static string ActName(int act) => ActNames[act % ActNames.Length];
@@ -57,8 +70,12 @@ public static class GameText
                 return $"Урон всех героев +15%.\n{HeroNames[hero.Id]}: {Rules.HeroDamage(hero, level, meta)} → {Rules.HeroDamage(hero, level + 1, meta)}";
             case Blessing.Haste:
                 return $"Атаки на 8% чаще.\nПауза между атаками: {Seconds(Rules.AttackInterval(hero, level))} → {Seconds(Rules.AttackInterval(hero, level + 1))} с";
+            case Blessing.Volley when hero.Pattern == AttackPattern.Cleave:
+                return $"Замах шире на 10°.\nДуга удара: {Degrees(2 * Rules.CleaveArc(hero, level))}° → {Degrees(2 * Rules.CleaveArc(hero, level + 1))}°";
             case Blessing.Volley:
                 return $"Больше снарядов в атаке.\n{HeroNames[hero.Id]}: {Rules.ProjectileCount(hero, level)} → {Rules.ProjectileCount(hero, level + 1)}";
+            case Blessing.Pierce when hero.Pattern == AttackPattern.Cleave:
+                return $"Удар задевает ещё одного врага.\nЦелей: {Rules.Pierce(hero, level)} → {Rules.Pierce(hero, level + 1)}";
             case Blessing.Pierce:
                 return $"Снаряд пробивает ещё одного врага.\nПробитие: {Rules.Pierce(hero, level)} → {Rules.Pierce(hero, level + 1)}";
             case Blessing.Swift:
@@ -104,4 +121,6 @@ public static class GameText
     private static string Seconds(int ticks) => (ticks / (float)SimConstants.TicksPerSecond).ToString("0.00", CultureInfo.InvariantCulture);
 
     private static string PerSecond(Fix perTick) => ((int)(perTick.Raw * SimConstants.TicksPerSecond / Fix.OneRaw)).ToString(CultureInfo.InvariantCulture);
+
+    private static string Degrees(int angle) => ((long)angle * 360 / FixMath.FullTurn).ToString(CultureInfo.InvariantCulture);
 }

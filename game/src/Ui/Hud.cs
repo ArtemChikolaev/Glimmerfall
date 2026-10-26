@@ -29,6 +29,7 @@ public partial class Hud : Control
     private Ability _dash = null!;
     private Ability _swap = null!;
     private Ability _assist = null!;
+    private Label _shrine = null!;
     private ColorRect _hurt = null!;
     private float _hurtPulse;
 
@@ -101,6 +102,10 @@ public partial class Hud : Control
         _assist = new Ability("Ассист", "E");
         _assist.Root.CustomMinimumSize = new Vector2(230, 0);
         bottom.AddChild(_assist.Root);
+        _shrine = UiKit.Text("", 16, MasterPalette.Instance["radiance2"], serif: true);
+        _shrine.CustomMinimumSize = new Vector2(190, 0);
+        _shrine.SizeFlagsVertical = SizeFlags.ShrinkCenter;
+        bottom.AddChild(_shrine);
         _level = UiKit.Text("", 20, UiKit.Glow, serif: true);
         _level.CustomMinimumSize = new Vector2(70, 0);
         _level.HorizontalAlignment = HorizontalAlignment.Right;
@@ -114,6 +119,15 @@ public partial class Hud : Control
 
     /// <summary>Вспышка красной виньетки по краям экрана при уроне герою.</summary>
     public void Hurt(float strength) => _hurtPulse = Math.Max(_hurtPulse, strength);
+
+    /// <summary>Облики героев сменились — портреты строк отряда из новых листов.</summary>
+    public void SetPortraits(SpriteSheet[] heroSheets)
+    {
+        foreach (HeroRow row in _heroes)
+        {
+            row.SetPortraits(heroSheets);
+        }
+    }
 
     public void Refresh(World world, float frameSeconds)
     {
@@ -153,6 +167,7 @@ public partial class Hud : Control
         }
         _assist.Name = helper >= 0 ? $"Ассист: {GameText.HeroNames[s.Kind[helper]]}" : "Ассист";
         _assist.Refresh(s.AssistCooldown, Rules.AssistCooldownTicks, false, helper < 0);
+        _shrine.Text = s.ShrineTicks > 0 ? $"Сила святилища +{Rules.ShrineDamagePercent}% · {(s.ShrineTicks + 59) / 60} с" : "";
 
         float lowHp = s.Alive[s.Active] ? 1f - (float)s.Hp[s.Active] / s.MaxHp[s.Active] : 0f;
         float danger = lowHp > 0.7f ? (lowHp - 0.7f) / 0.3f * (0.35f + 0.15f * MathF.Sin((float)Time.GetTicksMsec() / 180f)) : 0f;
@@ -201,7 +216,7 @@ void fragment() {
         private readonly StyleBoxFlat _idle;
         private readonly StyleBoxFlat _waiting;
 
-        private readonly Texture2D[] _portraits;
+        private Texture2D[] _portraits;
 
         public HeroRow(SpriteSheet[] sheets)
         {
@@ -211,15 +226,7 @@ void fragment() {
             Root = new PanelContainer { MouseFilter = MouseFilterEnum.Ignore, CustomMinimumSize = new Vector2(300, 0) };
             var row = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
             row.AddThemeConstantOverride("separation", 8);
-            // портрет — голова и плечи из кадра стойки лицом к камере, по листу каждого героя
-            _portraits = new Texture2D[sheets.Length];
-            for (int k = 0; k < sheets.Length; k++)
-            {
-                SpriteSheet sheet = sheets[k];
-                float size = 36 * sheet.GridScale;
-                var region = new Rect2(sheet.AnchorX - size / 2, sheet["idle"].Row(0) * sheet.CellHeight + sheet.AnchorY - 54 * sheet.GridScale, size, size * 0.9f);
-                _portraits[k] = new AtlasTexture { Atlas = sheet.Texture, Region = region };
-            }
+            _portraits = Portraits(sheets);
             _portrait = new TextureRect
             {
                 Texture = _portraits[0],
@@ -243,6 +250,31 @@ void fragment() {
             column.AddChild(_hp);
             row.AddChild(column);
             Root.AddChild(row);
+        }
+
+        /// <summary>Облики сменились в гардеробе — портреты из новых листов.</summary>
+        public void SetPortraits(SpriteSheet[] sheets)
+        {
+            _portraits = Portraits(sheets);
+            _portrait.Texture = null;
+        }
+
+        /// <summary>
+        /// Портрет — голова и плечи из кадра стойки лицом к камере, по листу каждого героя; верх — от роста модели:
+        /// громила выше остальных, и рамка у него сдвигается к его голове.
+        /// </summary>
+        public static Texture2D[] Portraits(SpriteSheet[] sheets)
+        {
+            var portraits = new Texture2D[sheets.Length];
+            for (int k = 0; k < sheets.Length; k++)
+            {
+                SpriteSheet sheet = sheets[k];
+                float size = 36 * sheet.GridScale * Math.Max(1f, sheet.TargetPx / 48f);
+                float top = sheet.AnchorY - (sheet.TargetPx + 6) * sheet.GridScale;
+                var region = new Rect2(sheet.AnchorX - size / 2, sheet["idle"].Row(0) * sheet.CellHeight + top, size, size * 0.9f);
+                portraits[k] = new AtlasTexture { Atlas = sheet.Texture, Region = region };
+            }
+            return portraits;
         }
 
         public void Refresh(World world, int index)
@@ -439,6 +471,75 @@ public partial class ChoiceCards : Control
         _sfx.Play(Sound.UiClick, 0.9f, 0f);
         Visible = false;
         Chosen?.Invoke(index);
+    }
+}
+
+/// <summary>
+/// Метки мест акта на краю экрана: куда идти к нетронутому святилищу (золото) и алтарю (кровь); у пробуждённого
+/// алтаря метка бьётся. Место в кадре метки не нужно — его видно. Точки — из сима, в сим ничего не пишется.
+/// </summary>
+public partial class PlaceMarkers : Control
+{
+    private const float Edge = 44f;
+
+    private WorldHost _host = null!;
+    private World? _world;
+
+    public void Build(WorldHost host)
+    {
+        _host = host;
+        SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        MouseFilter = MouseFilterEnum.Ignore;
+    }
+
+    public void Refresh(World world)
+    {
+        _world = world;
+        QueueRedraw();
+    }
+
+    public override void _Draw()
+    {
+        if (_world == null)
+        {
+            return;
+        }
+        PlacePool p = _world.Places;
+        Vector2 size = Size;
+        var center = size / 2;
+        float pulse = 0.6f + 0.4f * MathF.Sin((float)Time.GetTicksMsec() / 120f);
+        for (int i = 0; i < p.Count; i++)
+        {
+            if (p.State[i] == PlaceState.Spent)
+            {
+                continue;
+            }
+            Vector2 at = _host.WorldToUi(new Vector2(p.X[i].Raw, p.Y[i].Raw) / Fix.OneRaw);
+            if (at.X > Edge && at.Y > Edge && at.X < size.X - Edge && at.Y < size.Y - Edge)
+            {
+                continue;
+            }
+            Vector2 dir = (at - center).Normalized();
+            float scale = Math.Min((size.X / 2 - Edge) / Math.Max(Math.Abs(dir.X), 1e-3f), (size.Y / 2 - Edge) / Math.Max(Math.Abs(dir.Y), 1e-3f));
+            Vector2 mark = center + dir * scale;
+            bool shrine = p.Kind[i] == PlaceKind.Shrine;
+            Color color = shrine ? MasterPalette.Instance["radiance2"] : MasterPalette.Instance["crimson4"];
+            float alpha = p.State[i] == PlaceState.Awake ? pulse : 0.85f;
+            DrawCircle(mark, 13f, UiKit.WithAlpha(MasterPalette.Instance["ink"], 0.75f));
+            DrawArc(mark, 13f, 0, Mathf.Tau, 24, UiKit.WithAlpha(color, alpha), 2f);
+            // стрелка наружу, к месту; внутри — знак: огонёк святилища или рога алтаря
+            Vector2 side = new(-dir.Y, dir.X);
+            DrawColoredPolygon(new[] { mark + dir * 20f, mark + dir * 14f + side * 5f, mark + dir * 14f - side * 5f }, UiKit.WithAlpha(color, alpha));
+            if (shrine)
+            {
+                DrawCircle(mark, 5f, UiKit.WithAlpha(color, alpha));
+            }
+            else
+            {
+                DrawLine(mark + new Vector2(-6, 4), mark + new Vector2(-3, -6), UiKit.WithAlpha(color, alpha), 2f);
+                DrawLine(mark + new Vector2(6, 4), mark + new Vector2(3, -6), UiKit.WithAlpha(color, alpha), 2f);
+            }
+        }
     }
 }
 

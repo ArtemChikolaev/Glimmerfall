@@ -38,12 +38,16 @@ public sealed class SpikeOptions
     /// <summary>Снять окно, когда откроется выбор благословения (автопилот играет до модалки).</summary>
     public bool CaptureCards;
 
-    /// <summary>Перед снимком открыть экран: pause, settings или result — проверка раскладки.</summary>
+    /// <summary>Перед снимком открыть экран: pause, settings, result или wardrobe — проверка раскладки.</summary>
     public string? CaptureScreen;
 
-    /// <summary>Снять окно через <see cref="CaptureDelay"/> кадров после N-го ассиста или N-го дуэта связки (проверка глазами).</summary>
-    public int CaptureAssist;
-    public int CaptureDuet;
+    /// <summary>
+    /// Снять окно через <see cref="CaptureDelay"/> кадров после N-го события сима этого вида (проверка глазами):
+    /// <c>--capture-assist N</c> — ассист, <c>--capture-duet N</c> — дуэт связки, <c>--capture-place N</c> — святилище,
+    /// <c>--capture-attack N</c> — удар героя.
+    /// </summary>
+    public Sim.Core.SimEventType CaptureEvent;
+    public int CaptureCount;
     public int CaptureDelay = 6;
 
     /// <summary>Игра: сразу начать забег (мимо титула); с <see cref="RunAutopilot"/> — забег ведёт бот.</summary>
@@ -103,8 +107,10 @@ public sealed class SpikeOptions
                 case "--capture-frame": options.CaptureFrame = NextInt(); break;
                 case "--capture-cards": options.CaptureCards = true; break;
                 case "--capture-screen": options.CaptureScreen = Next(); break;
-                case "--capture-assist": options.CaptureAssist = NextInt(); break;
-                case "--capture-duet": options.CaptureDuet = NextInt(); break;
+                case "--capture-assist": (options.CaptureEvent, options.CaptureCount) = (Sim.Core.SimEventType.Assist, NextInt()); break;
+                case "--capture-duet": (options.CaptureEvent, options.CaptureCount) = (Sim.Core.SimEventType.Duet, NextInt()); break;
+                case "--capture-place": (options.CaptureEvent, options.CaptureCount) = (Sim.Core.SimEventType.PlaceUsed, NextInt()); break;
+                case "--capture-attack": (options.CaptureEvent, options.CaptureCount) = (Sim.Core.SimEventType.HeroAttack, NextInt()); break;
                 case "--capture-delay": options.CaptureDelay = NextInt(); break;
                 case "--autostart": options.Autostart = true; break;
                 case "--autopilot": options.RunAutopilot = true; break;
