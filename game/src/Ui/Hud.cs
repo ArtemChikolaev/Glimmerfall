@@ -481,6 +481,9 @@ public partial class ChoiceCards : Control
 public partial class PlaceMarkers : Control
 {
     private const float Edge = 44f;
+    /// <summary>Полосы HUD сверху (цель акта) и снизу (способности): метки держатся внутри, не наезжая на панели.</summary>
+    private const float TopBand = 96f;
+    private const float BottomBand = 76f;
 
     private WorldHost _host = null!;
     private World? _world;
@@ -505,8 +508,9 @@ public partial class PlaceMarkers : Control
             return;
         }
         PlacePool p = _world.Places;
-        Vector2 size = Size;
-        var center = size / 2;
+        // поле меток — экран без полос HUD; метка — точка пересечения луча из его центра к месту с краем поля
+        var field = new Rect2(Edge, TopBand, Size.X - 2 * Edge, Size.Y - TopBand - BottomBand);
+        Vector2 center = field.GetCenter();
         float pulse = 0.6f + 0.4f * MathF.Sin((float)Time.GetTicksMsec() / 120f);
         for (int i = 0; i < p.Count; i++)
         {
@@ -515,12 +519,12 @@ public partial class PlaceMarkers : Control
                 continue;
             }
             Vector2 at = _host.WorldToUi(new Vector2(p.X[i].Raw, p.Y[i].Raw) / Fix.OneRaw);
-            if (at.X > Edge && at.Y > Edge && at.X < size.X - Edge && at.Y < size.Y - Edge)
+            if (field.HasPoint(at))
             {
                 continue;
             }
             Vector2 dir = (at - center).Normalized();
-            float scale = Math.Min((size.X / 2 - Edge) / Math.Max(Math.Abs(dir.X), 1e-3f), (size.Y / 2 - Edge) / Math.Max(Math.Abs(dir.Y), 1e-3f));
+            float scale = Math.Min(field.Size.X / 2 / Math.Max(Math.Abs(dir.X), 1e-3f), field.Size.Y / 2 / Math.Max(Math.Abs(dir.Y), 1e-3f));
             Vector2 mark = center + dir * scale;
             bool shrine = p.Kind[i] == PlaceKind.Shrine;
             Color color = shrine ? MasterPalette.Instance["radiance2"] : MasterPalette.Instance["crimson4"];
