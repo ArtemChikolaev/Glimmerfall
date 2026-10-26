@@ -1,0 +1,136 @@
+{
+ "$schema": "../../schema/sprite-sheet.schema.json",
+ "id": "warden_bloodbear_960",
+ "image": "warden_bloodbear_960.png",
+ "grid": [
+  960,
+  540
+ ],
+ "cell": [
+  104,
+  148
+ ],
+ "columns": 12,
+ "anchor": [
+  52,
+  127
+ ],
+ "palette": "glimmerfall-master@0.1-draft",
+ "directions": {
+  "rendered": [
+   "S",
+   "SE",
+   "E",
+   "NE",
+   "N"
+  ],
+  "mirror": {
+   "SW": "SE",
+   "W": "E",
+   "NW": "NE"
+  }
+ },
+ "clips": {
+  "idle": {
+   "row": 0,
+   "frames": 8,
+   "fps": 8,
+   "loop": true,
+   "dirs": [
+    "S",
+    "SE",
+    "E",
+    "NE",
+    "N"
+   ]
+  },
+  "run": {
+   "row": 5,
+   "frames": 8,
+   "fps": 12,
+   "loop": true,
+   "dirs": [
+    "S",
+    "SE",
+    "E",
+    "NE",
+    "N"
+   ]
+  },
+  "attack": {
+   "row": 10,
+   "frames": 9,
+   "fps": 15,
+   "loop": false,
+   "dirs": [
+    "S",
+    "SE",
+    "E",
+    "NE",
+    "N"
+   ],
+   "phases": {
+    "windup": [
+     0,
+     3
+    ],
+    "active": [
+     3,
+     5
+    ],
+    "recovery": [
+     5,
+     9
+    ]
+   }
+  },
+  "hit": {
+   "row": 15,
+   "frames": 4,
+   "fps": 12,
+   "loop": false,
+   "dirs": [
+    "S",
+    "SE",
+    "E",
+    "NE",
+    "N"
+   ]
+  },
+  "death": {
+   "row": 20,
+   "frames": 12,
+   "fps": 12,
+   "loop": false,
+   "dirs": [
+    "S"
+   ]
+  }
+ },
+ "source": {
+  "kind": "procedural",
+  "class": "character",
+  "model": "warden_bloodbear",
+  "note": "облик стража «кровавый медведь»: голова медведя, кровавый плащ, ожерелье из клыков",
+  "scale": 1.5,
+  "target_px": 96.0,
+  "supersample": 4,
+  "pixels_per_meter": 54.9152,
+  "renderer": "Blender 5.2.1 LTS Cycles",
+  "pipeline": 1,
+  "style": {
+   "key_light": [
+    -0.5512693810472418,
+    0.6515001776012856,
+    0.5212001420810285
+   ],
+   "shadow_below": 0.3,
+   "highlight_above": 0.82,
+   "glow_core_above": 0.55,
+   "coverage": 0.5,
+   "line_depth_m": 0.1,
+   "despeckle_px": 2,
+   "outline": true
+  }
+ }
+}

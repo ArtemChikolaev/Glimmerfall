@@ -7,13 +7,13 @@
   540
  ],
  "cell": [
-  87,
-  113
+  99,
+  140
  ],
  "columns": 12,
  "anchor": [
-  41,
-  96
+  49,
+  120
  ],
  "palette": "glimmerfall-master@0.1-draft",
  "directions": {
@@ -111,11 +111,11 @@
   "kind": "procedural",
   "class": "character",
   "model": "warden",
-  "note": "тестовый герой-страж (мороз): латы, шлем, башенный щит, копьё",
+  "note": "герой-страж (мороз): громила с голыми руками, мех, рогатый шлем, огромная секира",
   "scale": 1.5,
-  "target_px": 75.0,
+  "target_px": 96.0,
   "supersample": 4,
-  "pixels_per_meter": 48.6604,
+  "pixels_per_meter": 51.891,
   "renderer": "Blender 5.2.1 LTS Cycles",
   "pipeline": 1,
   "style": {

@@ -7,13 +7,13 @@
   540
  ],
  "cell": [
-  60,
-  81
+  62,
+  83
  ],
  "columns": 10,
  "anchor": [
   29,
-  63
+  65
  ],
  "palette": "glimmerfall-master@0.1-draft",
  "directions": {
@@ -88,11 +88,11 @@
   "kind": "procedural",
   "class": "character",
   "model": "ghoul",
-  "note": "тестовый рядовой враг: сутулый, когти, без оружия",
+  "note": "гуль: сутулая гнилая плоть, длинные когти, гнилые глаза",
   "scale": 1.5,
   "target_px": 45.0,
   "supersample": 4,
-  "pixels_per_meter": 45.0357,
+  "pixels_per_meter": 44.8191,
   "renderer": "Blender 5.2.1 LTS Cycles",
   "pipeline": 1,
   "style": {

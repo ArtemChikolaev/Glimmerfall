@@ -7,13 +7,13 @@
   360
  ],
  "cell": [
-  71,
-  93
+  50,
+  64
  ],
  "columns": 10,
  "anchor": [
-  33,
-  74
+  24,
+  51
  ],
  "palette": "glimmerfall-master@0.1-draft",
  "directions": {
@@ -88,11 +88,11 @@
   "kind": "procedural",
   "class": "character",
   "model": "brute",
-  "note": "тестовая элита: тот же риг, массивные пропорции, костяная броня",
+  "note": "демон-громила: красная кожа, рога, когти, хвост",
   "scale": 1.0,
-  "target_px": 60.0,
+  "target_px": 44.0,
   "supersample": 4,
-  "pixels_per_meter": 41.1677,
+  "pixels_per_meter": 29.5855,
   "renderer": "Blender 5.2.1 LTS Cycles",
   "pipeline": 1,
   "style": {

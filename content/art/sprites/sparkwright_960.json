@@ -7,13 +7,13 @@
   540
  ],
  "cell": [
-  96,
-  125
+  104,
+  133
  ],
  "columns": 12,
  "anchor": [
-  47,
-  107
+  51,
+  114
  ],
  "palette": "glimmerfall-master@0.1-draft",
  "directions": {
@@ -111,11 +111,11 @@
   "kind": "procedural",
   "class": "character",
   "model": "sparkwright",
-  "note": "тестовый герой-искровед (молния): шляпа, очки, ранец с катушками, посох",
+  "note": "герой-искровед (молния): оккультист в остроконечном капюшоне, клетка с молнией, посох с черепом",
   "scale": 1.5,
   "target_px": 75.0,
   "supersample": 4,
-  "pixels_per_meter": 50.3898,
+  "pixels_per_meter": 52.7758,
   "renderer": "Blender 5.2.1 LTS Cycles",
   "pipeline": 1,
   "style": {

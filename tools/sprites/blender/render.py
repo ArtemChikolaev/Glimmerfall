@@ -112,7 +112,8 @@ def part_mesh(part, bm):
         bmesh.ops.create_cone(bm, cap_ends=True, segments=10, radius1=part["r"][1], radius2=part["r"][0],
                               depth=length, matrix=matrix)
     elif shape == "ball":
-        matrix = Matrix.Translation(part["center"]) @ Matrix.Diagonal((*part["scale"], 1.0))
+        matrix = Matrix.Translation(part["center"]) @ Euler([math.radians(a) for a in part.get("rot", (0, 0, 0))]).to_matrix().to_4x4() \
+            @ Matrix.Diagonal((*part["scale"], 1.0))
         bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=10, radius=part["radius"], matrix=matrix)
     elif shape == "box":
         matrix = Matrix.Translation(part["center"]) @ Euler([math.radians(a) for a in part["rot"]]).to_matrix().to_4x4() \

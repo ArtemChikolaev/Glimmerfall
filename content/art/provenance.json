@@ -2,6 +2,50 @@
  "$schema": "../schema/provenance.schema.json",
  "assets": [
   {
+   "path": "game/art/sprites/altar.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «altar» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-27",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: алтарь риска: кровавая плита, рога, черепа, чаша с огнём (место акта)"
+  },
+  {
+   "path": "game/art/sprites/altar_960.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «altar» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-27",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: алтарь риска: кровавая плита, рога, черепа, чаша с огнём (место акта)"
+  },
+  {
+   "path": "game/art/sprites/bones.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «bones» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-27",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: груда костей с черепом"
+  },
+  {
+   "path": "game/art/sprites/bones_960.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «bones» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-27",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: груда костей с черепом"
+  },
+  {
    "path": "game/art/sprites/brazier.png",
    "kind": "sprite-sheet",
    "source": "процедурный манекен «brazier» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
@@ -32,7 +76,7 @@
    "date": "2026-10-26",
    "ai": true,
    "placeholder": true,
-   "note": "заглушка прототипа, не арт: тестовая элита: тот же риг, массивные пропорции, костяная броня"
+   "note": "заглушка прототипа, не арт: демон-громила: красная кожа, рога, когти, хвост"
   },
   {
    "path": "game/art/sprites/brute_960.png",
@@ -43,7 +87,7 @@
    "date": "2026-10-26",
    "ai": true,
    "placeholder": true,
-   "note": "заглушка прототипа, не арт: тестовая элита: тот же риг, массивные пропорции, костяная броня"
+   "note": "заглушка прототипа, не арт: демон-громила: красная кожа, рога, когти, хвост"
   },
   {
    "path": "game/art/sprites/cross.png",
@@ -68,6 +112,28 @@
    "note": "заглушка прототипа, не арт: могильный крест на холмике"
   },
   {
+   "path": "game/art/sprites/deadtree.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «deadtree» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-27",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: мёртвое дерево с голыми ветвями"
+  },
+  {
+   "path": "game/art/sprites/deadtree_960.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «deadtree» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-27",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: мёртвое дерево с голыми ветвями"
+  },
+  {
    "path": "game/art/sprites/ghoul.png",
    "kind": "sprite-sheet",
    "source": "процедурный манекен «ghoul» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
@@ -76,7 +142,7 @@
    "date": "2026-10-26",
    "ai": true,
    "placeholder": true,
-   "note": "заглушка прототипа, не арт: тестовый рядовой враг: сутулый, когти, без оружия"
+   "note": "заглушка прототипа, не арт: гуль: сутулая гнилая плоть, длинные когти, гнилые глаза"
   },
   {
    "path": "game/art/sprites/ghoul_960.png",
@@ -87,7 +153,51 @@
    "date": "2026-10-26",
    "ai": true,
    "placeholder": true,
-   "note": "заглушка прототипа, не арт: тестовый рядовой враг: сутулый, когти, без оружия"
+   "note": "заглушка прототипа, не арт: гуль: сутулая гнилая плоть, длинные когти, гнилые глаза"
+  },
+  {
+   "path": "game/art/sprites/gloom_warden.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «gloom_warden» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-26",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: Страж мрака (босс): латы, корона рогов, меч с раскалённой кромкой"
+  },
+  {
+   "path": "game/art/sprites/gloom_warden_960.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «gloom_warden» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-26",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: Страж мрака (босс): латы, корона рогов, меч с раскалённой кромкой"
+  },
+  {
+   "path": "game/art/sprites/horned.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «horned» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-26",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: рогач: бычья морда, рога вперёд, загривок"
+  },
+  {
+   "path": "game/art/sprites/horned_960.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «horned» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-26",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: рогач: бычья морда, рога вперёд, загривок"
   },
   {
    "path": "game/art/sprites/lamplighter.png",
@@ -98,7 +208,7 @@
    "date": "2026-10-26",
    "ai": true,
    "placeholder": true,
-   "note": "заглушка прототипа, не арт: тестовый герой-фонарщик (огонь): капюшон, плащ, фонарь, клинок"
+   "note": "заглушка прототипа, не арт: герой-фонарщик (огонь): палач в капюшоне, железная маска, фонарь с огнём, пылающий фальшион"
   },
   {
    "path": "game/art/sprites/lamplighter_960.png",
@@ -109,7 +219,29 @@
    "date": "2026-10-26",
    "ai": true,
    "placeholder": true,
-   "note": "заглушка прототипа, не арт: тестовый герой-фонарщик (огонь): капюшон, плащ, фонарь, клинок"
+   "note": "заглушка прототипа, не арт: герой-фонарщик (огонь): палач в капюшоне, железная маска, фонарь с огнём, пылающий фальшион"
+  },
+  {
+   "path": "game/art/sprites/lamplighter_ashen.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «lamplighter_ashen» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-27",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: облик фонарщика «пепельный палач»: пепельный капюшон, доспех тёмного железа, костяная маска"
+  },
+  {
+   "path": "game/art/sprites/lamplighter_ashen_960.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «lamplighter_ashen» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-27",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: облик фонарщика «пепельный палач»: пепельный капюшон, доспех тёмного железа, костяная маска"
   },
   {
    "path": "game/art/sprites/pillar.png",
@@ -134,6 +266,28 @@
    "note": "заглушка прототипа, не арт: обломок колонны с упавшим куском капители"
   },
   {
+   "path": "game/art/sprites/ravager.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «ravager» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-26",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: опустошитель (элита): демон в железе, костяные крылья, тесак"
+  },
+  {
+   "path": "game/art/sprites/ravager_960.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «ravager» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-26",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: опустошитель (элита): демон в железе, костяные крылья, тесак"
+  },
+  {
    "path": "game/art/sprites/sarcophagus.png",
    "kind": "sprite-sheet",
    "source": "процедурный манекен «sarcophagus» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
@@ -156,6 +310,72 @@
    "note": "заглушка прототипа, не арт: саркофаг со сдвинутой крышкой"
   },
   {
+   "path": "game/art/sprites/shrine.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «shrine» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-27",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: святилище фонарщиков: постамент и клетка с вечным огнём (место акта)"
+  },
+  {
+   "path": "game/art/sprites/shrine_960.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «shrine» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-27",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: святилище фонарщиков: постамент и клетка с вечным огнём (место акта)"
+  },
+  {
+   "path": "game/art/sprites/skeleton.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «skeleton» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-26",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: скелет-воин: ржавый щит и меч, угли в глазницах"
+  },
+  {
+   "path": "game/art/sprites/skeleton_960.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «skeleton» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-26",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: скелет-воин: ржавый щит и меч, угли в глазницах"
+  },
+  {
+   "path": "game/art/sprites/skeleton_archer.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «skeleton_archer» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-26",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: костяной лучник: истлевший капюшон, колчан, лук"
+  },
+  {
+   "path": "game/art/sprites/skeleton_archer_960.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «skeleton_archer» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-26",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: костяной лучник: истлевший капюшон, колчан, лук"
+  },
+  {
    "path": "game/art/sprites/sparkwright.png",
    "kind": "sprite-sheet",
    "source": "процедурный манекен «sparkwright» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
@@ -164,7 +384,7 @@
    "date": "2026-10-26",
    "ai": true,
    "placeholder": true,
-   "note": "заглушка прототипа, не арт: тестовый герой-искровед (молния): шляпа, очки, ранец с катушками, посох"
+   "note": "заглушка прототипа, не арт: герой-искровед (молния): оккультист в остроконечном капюшоне, клетка с молнией, посох с черепом"
   },
   {
    "path": "game/art/sprites/sparkwright_960.png",
@@ -175,7 +395,51 @@
    "date": "2026-10-26",
    "ai": true,
    "placeholder": true,
-   "note": "заглушка прототипа, не арт: тестовый герой-искровед (молния): шляпа, очки, ранец с катушками, посох"
+   "note": "заглушка прототипа, не арт: герой-искровед (молния): оккультист в остроконечном капюшоне, клетка с молнией, посох с черепом"
+  },
+  {
+   "path": "game/art/sprites/sparkwright_boneseer.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «sparkwright_boneseer» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-27",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: облик искроведа «костяной провидец»: бледная мантия, ветвистые рога"
+  },
+  {
+   "path": "game/art/sprites/sparkwright_boneseer_960.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «sparkwright_boneseer» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-27",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: облик искроведа «костяной провидец»: бледная мантия, ветвистые рога"
+  },
+  {
+   "path": "game/art/sprites/stake.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «stake» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-27",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: кол с насаженным скелетом"
+  },
+  {
+   "path": "game/art/sprites/stake_960.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «stake» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-27",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: кол с насаженным скелетом"
   },
   {
    "path": "game/art/sprites/statue.png",
@@ -230,7 +494,7 @@
    "date": "2026-10-26",
    "ai": true,
    "placeholder": true,
-   "note": "заглушка прототипа, не арт: тестовый герой-страж (мороз): латы, шлем, башенный щит, копьё"
+   "note": "заглушка прототипа, не арт: герой-страж (мороз): громила с голыми руками, мех, рогатый шлем, огромная секира"
   },
   {
    "path": "game/art/sprites/warden_960.png",
@@ -241,7 +505,29 @@
    "date": "2026-10-26",
    "ai": true,
    "placeholder": true,
-   "note": "заглушка прототипа, не арт: тестовый герой-страж (мороз): латы, шлем, башенный щит, копьё"
+   "note": "заглушка прототипа, не арт: герой-страж (мороз): громила с голыми руками, мех, рогатый шлем, огромная секира"
+  },
+  {
+   "path": "game/art/sprites/warden_bloodbear.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «warden_bloodbear» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-27",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: облик стража «кровавый медведь»: голова медведя, кровавый плащ, ожерелье из клыков"
+  },
+  {
+   "path": "game/art/sprites/warden_bloodbear_960.png",
+   "kind": "sprite-sheet",
+   "source": "процедурный манекен «warden_bloodbear» (tools/sprites/blender/models.py), Blender 5.2.1 LTS, конвейер tools/sprites",
+   "author": "ИИ-агент (Claude Code) кодом из примитивов; конвейер проекта",
+   "license": "собственность проекта",
+   "date": "2026-10-27",
+   "ai": true,
+   "placeholder": true,
+   "note": "заглушка прототипа, не арт: облик стража «кровавый медведь»: голова медведя, кровавый плащ, ожерелье из клыков"
   },
   {
    "path": "game/icon.svg",

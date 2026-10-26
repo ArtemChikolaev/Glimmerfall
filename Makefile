@@ -8,7 +8,9 @@ CLI     := dotnet $(CLI_DLL)
 SIM     := $(CURDIR)/sim.cli/bin/Release/net10.0/glimmerfall-sim
 VENV    := .venv/.stamp
 SPRITES := PYTHONPATH=tools/sprites .venv/bin/python -m glimmer_sprites
-MODELS  ?= lamplighter warden sparkwright ghoul brute pillar tomb cross brazier statue sarcophagus
+MODELS  ?= lamplighter warden sparkwright lamplighter_ashen warden_bloodbear sparkwright_boneseer \
+	skeleton skeleton_archer ghoul brute horned ravager gloom_warden \
+	pillar tomb cross brazier statue sarcophagus shrine altar bones stake deadtree
 
 POLICY  ?= kiter
 RUNS    ?= 36

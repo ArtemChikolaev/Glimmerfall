@@ -111,11 +111,11 @@
   "kind": "procedural",
   "class": "character",
   "model": "lamplighter",
-  "note": "тестовый герой-фонарщик (огонь): капюшон, плащ, фонарь, клинок",
+  "note": "герой-фонарщик (огонь): палач в капюшоне, железная маска, фонарь с огнём, пылающий фальшион",
   "scale": 1.5,
   "target_px": 72.0,
   "supersample": 4,
-  "pixels_per_meter": 49.9041,
+  "pixels_per_meter": 50.0766,
   "renderer": "Blender 5.2.1 LTS Cycles",
   "pipeline": 1,
   "style": {
