@@ -20,6 +20,25 @@ public sealed class SpikeOptions
     public int SmokeFrames;
     public bool Vsync = true;
 
+    /// <summary>Замер закончился — выйти (ПК, CI) или оставить отчёт на экране для скриншота (телефон, Deck в игровом режиме).</summary>
+    public bool QuitAfterBench = true;
+
+    /// <summary>
+    /// Сборка с тегом «bench» (пресеты «Android Bench», «iOS Bench») без аргументов сразу гонит замер: на телефоне
+    /// аргументы командной строки неудобны.
+    /// </summary>
+    public static SpikeOptions FromEnvironment(string[] args, bool benchFeature)
+    {
+        SpikeOptions options = Parse(args);
+        if (benchFeature && args.Length == 0)
+        {
+            options.BenchSeconds = 60;
+            options.Vsync = false;
+            options.QuitAfterBench = false;
+        }
+        return options;
+    }
+
     public static SpikeOptions Parse(string[] args)
     {
         var options = new SpikeOptions();

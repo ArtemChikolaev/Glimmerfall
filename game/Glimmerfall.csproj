@@ -2,6 +2,8 @@
   <!-- Презентация на Godot 4.7.2 .NET (ADR 0002): рендер, интерполяция, ввод, HUD. Правила игры — только в sim/. -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <!-- Шаблон экспорта Android в Godot 4.7.2 принимает только net9.0 (без gradle-сборки): мобильный спайк G1.4. -->
+    <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'android' ">net9.0</TargetFramework>
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <RootNamespace>Glimmerfall.Game</RootNamespace>
     <AssemblyName>Glimmerfall</AssemblyName>

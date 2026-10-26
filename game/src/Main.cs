@@ -33,13 +33,14 @@ public partial class Main : Node2D
     private int _frames;
     private bool _toggleHeld;
     private bool _failed;
+    private string? _benchReport;
     private Rid _viewport;
 
     public override void _Ready()
     {
         try
         {
-            _options = SpikeOptions.Parse(OS.GetCmdlineUserArgs());
+            _options = SpikeOptions.FromEnvironment(OS.GetCmdlineUserArgs(), OS.HasFeature("bench"));
         }
         catch (ArgumentException e)
         {
@@ -164,6 +165,11 @@ public partial class Main : Node2D
             ModalKind.Checkpoint => "  ЧЕКПОИНТ: " + Options(k => ((CheckpointOption)_world.ModalOption(k)).ToString()),
             _ => "",
         };
+        if (_benchReport != null)
+        {
+            _hud.Text = _benchReport;
+            return;
+        }
         _hud.Text = string.Format(CultureInfo.InvariantCulture,
             "{0:0} fps · {1} · tick {2} · act {3} {4}:{5:00}\nenemies {6} · projectiles {7} · shots {8} · instances {9}\n{10} hp {11}/{12} · squad {13}/3 · lvl {14} · {15} · {16}{17}",
             Engine.GetFramesPerSecond(), _hudStats.Compact(), _world.Tick, _world.ActIndex + 1,
@@ -192,7 +198,13 @@ public partial class Main : Node2D
             file?.StoreString(report);
         }
         GD.Print($"bench report saved to {ProjectSettings.GlobalizePath(name)}");
-        GetTree().Quit(0);
+        if (_options.QuitAfterBench)
+        {
+            GetTree().Quit(0);
+            return;
+        }
+        _benchReport = report;
+        _options.BenchSeconds = 0;
     }
 
     private void FinishSmoke()

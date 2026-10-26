@@ -5,5 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- iOS (NativeAOT): предупреждения AOT/тримминга идут из самого GodotSharp — ошибками их делать нельзя, иначе ILC падает. -->
+    <IlcTreatWarningsAsErrors>false</IlcTreatWarningsAsErrors>
+    <ILLinkTreatWarningsAsErrors>false</ILLinkTreatWarningsAsErrors>
   </PropertyGroup>
 </Project>

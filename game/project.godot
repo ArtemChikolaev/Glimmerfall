@@ -14,6 +14,7 @@ config/name="Glimmerfall"
 config/description="Horde spike (BACKLOG G1.3): C# sim rendered through MultiMesh with interpolation."
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.7", "C#", "Forward Plus")
+config/icon="res://icon.svg"
 
 [display]
 

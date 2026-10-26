@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Заглушка иконки спайка: фонарь в темноте. Нарисована вручную в SVG, без ИИ и сторонних ассетов. -->
+  <rect width="128" height="128" rx="20" fill="#120d16"/>
+  <circle cx="64" cy="70" r="40" fill="#f2a34a" opacity="0.18"/>
+  <circle cx="64" cy="70" r="26" fill="#f2a34a" opacity="0.25"/>
+  <rect x="56" y="22" width="16" height="10" rx="3" fill="#6b5a4a"/>
+  <path d="M44 38h40l-6 52H50z" fill="#2a2030" stroke="#8a7560" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M64 50c8 10 10 18 4 26-2 3-6 4-8 2-6-5-2-14 4-28z" fill="#ffd27a"/>
+  <path d="M64 60c4 6 4 11 1 15-3-1-5-6-1-15z" fill="#fff3c4"/>
+  <rect x="46" y="90" width="36" height="8" rx="3" fill="#6b5a4a"/>
+</svg>
