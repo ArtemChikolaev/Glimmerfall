@@ -11,4 +11,9 @@
   <ItemGroup>
     <ProjectReference Include="../sim/Glimmerfall.Sim.csproj" />
   </ItemGroup>
+  <!-- Данные content/ вшиваются в сборку (ContentFiles.cs): один источник на диске, работает в любом экспорте. -->
+  <ItemGroup>
+    <EmbeddedResource Include="../content/art/palette.json" LogicalName="palette.json" />
+    <EmbeddedResource Include="../content/art/sprites/*.json" Exclude="../content/art/sprites/index.json" LogicalName="sprites/%(Filename)%(Extension)" />
+  </ItemGroup>
 </Project>

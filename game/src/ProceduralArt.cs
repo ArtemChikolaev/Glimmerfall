@@ -1,11 +1,12 @@
 using System;
+using Glimmerfall.Sim;
 using Godot;
 
 namespace Glimmerfall.Game;
 
 /// <summary>
-/// Заглушки спайка, нарисованные кодом: ни одного внешнего ассета — нечего вносить в реестр происхождения.
-/// Цвета — черновик «готической светотени» (ADR 0003), не стиль-библия.
+/// Заглушки спайка, нарисованные кодом: свечения, квад MultiMesh, пол из мировых тонов палитры. Тинты врагов
+/// и героев — временные метки видов поверх листов манекенов, не стиль-библия (её цвета — в палитре).
 /// </summary>
 public static class ProceduralArt
 {
@@ -27,12 +28,15 @@ public static class ProceduralArt
         new(0.78f, 0.66f, 1.00f), // sparkwright — молния
     };
 
-    public static readonly Color[] ProjectileColors =
+    /// <summary>
+    /// Границы отсечения слоёв MultiMesh: вся арена с запасом. Буфер заливается через RenderingServer, и Godot
+    /// не пересчитывает AABB сам — без явных границ слой отсекается целиком, когда камера уходит от места первого кадра.
+    /// </summary>
+    public static Aabb ArenaBounds()
     {
-        new(1.00f, 0.55f, 0.15f),
-        new(0.50f, 0.82f, 1.00f),
-        new(0.80f, 0.72f, 1.00f),
-    };
+        const float margin = 512f;
+        return new Aabb(new Vector3(-margin, -margin, -1f), new Vector3(SimConstants.ArenaSize + 2 * margin, SimConstants.ArenaSize + 2 * margin, 2f));
+    }
 
     /// <summary>Единичный квад для MultiMesh в 2D: вершины Vector2, UV по углам; масштаб задаёт трансформ экземпляра.</summary>
     public static ArrayMesh UnitQuad()
@@ -45,29 +49,6 @@ public static class ProceduralArt
         var mesh = new ArrayMesh();
         mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
         return mesh;
-    }
-
-    /// <summary>Тело врага: светлый круг с тёмным контуром и бликом — тонируется цветом экземпляра.</summary>
-    public static Texture2D Body(int size)
-    {
-        Image image = Image.CreateEmpty(size, size, false, Image.Format.Rgba8);
-        float c = (size - 1) / 2f;
-        for (int y = 0; y < size; y++)
-        {
-            for (int x = 0; x < size; x++)
-            {
-                float d = MathF.Sqrt((x - c) * (x - c) + (y - c) * (y - c)) / c;
-                if (d > 1f)
-                {
-                    image.SetPixel(x, y, Colors.Transparent);
-                    continue;
-                }
-                float light = 0.75f + 0.25f * Math.Clamp((c - y) / c - (x - c) / (2 * c), -1f, 1f);
-                Color color = d > 0.78f ? new Color(0.08f, 0.05f, 0.07f) : new Color(light, light, light);
-                image.SetPixel(x, y, color);
-            }
-        }
-        return ImageTexture.CreateFromImage(image);
     }
 
     /// <summary>Мягкое свечение для снарядов, частиц и света фонаря (рисуется аддитивно).</summary>
@@ -87,19 +68,25 @@ public static class ProceduralArt
         return ImageTexture.CreateFromImage(image);
     }
 
-    /// <summary>Тайл пола: тёмные плиты со швами и шумом — чтобы движение камеры читалось.</summary>
+    /// <summary>
+    /// Тайл пола в мировых тонах палитры (план светлоты: мир в нижней трети): плиты stone2 со швами stone1 и редкой
+    /// крошкой stone3 — чтобы движение камеры читалось, а силуэты оставались светлее пола.
+    /// </summary>
     public static Texture2D GroundTile(int size)
     {
+        MasterPalette palette = MasterPalette.Instance;
+        Color slab = palette["stone2"];
+        Color seam = palette["stone1"];
+        Color grit = palette["stone3"];
         Image image = Image.CreateEmpty(size, size, false, Image.Format.Rgba8);
         var random = new Random(7);
         for (int y = 0; y < size; y++)
         {
             for (int x = 0; x < size; x++)
             {
-                bool seam = x % (size / 2) == 0 || y % (size / 2) == 0;
-                float n = (float)random.NextDouble() * 0.025f;
-                float v = seam ? 0.045f : 0.085f + n;
-                image.SetPixel(x, y, new Color(v * 0.95f, v * 0.9f, v * 1.1f));
+                bool isSeam = x % (size / 2) == 0 || y % (size / 2) == 0;
+                bool isGrit = !isSeam && random.NextDouble() < 0.06;
+                image.SetPixel(x, y, isSeam ? seam : isGrit ? grit : slab);
             }
         }
         return ImageTexture.CreateFromImage(image);

@@ -36,6 +36,8 @@ public partial class Main : Node2D
     private bool _failed;
     private string? _benchReport;
     private Rid _viewport;
+    private float _gridScale = 1f;
+    private int _captureStage;
 
     public override void _Ready()
     {
@@ -54,19 +56,23 @@ public partial class Main : Node2D
         _world = new World(config, SeedHash.FromString(_options.Seed)) { CollectEvents = true };
         _autopilot = _options.Autopilot ? new KiterPolicy() : null;
 
+        // Сетка: мир всегда 640×360 единиц сима; на 960×540 камера увеличивает его в 1,5 раза, а листы _960 рисуются
+        // тем же размером в мире — тексель ложится в пиксель обеих сеток.
+        _gridScale = _options.Grid / 640f;
+        GetTree().Root.ContentScaleSize = new Vector2I(_options.Grid, _options.Grid * 9 / 16);
         _view = new WorldView();
         AddChild(_view);
-        _view.Init(_world);
-        _camera = new Camera2D();
+        _view.Init(_world, _gridScale, _options.Screenshot != null ? 7 : null);
+        _camera = new Camera2D { Zoom = new Vector2(_gridScale, _gridScale) };
         AddChild(_camera);
         _camera.MakeCurrent();
         var layer = new CanvasLayer();
         AddChild(layer);
-        _hud = new Label { Position = new Vector2(4, 2) };
+        _hud = new Label { Position = new Vector2(4, 2), Visible = _options.Screenshot == null };
         _hud.AddThemeFontSizeOverride("font_size", 8);
         _hud.AddThemeColorOverride("font_shadow_color", Colors.Black);
         layer.AddChild(_hud);
-        _touch = new TouchControls();
+        _touch = new TouchControls { Visible = _options.Screenshot == null };
         layer.AddChild(_touch);
 
         _viewport = GetViewport().GetViewportRid();
@@ -98,6 +104,11 @@ public partial class Main : Node2D
 
     private void Frame(double delta)
     {
+        if (_captureStage > 0)
+        {
+            Capture();
+            return;
+        }
         ulong frameStart = Time.GetTicksUsec();
         HandleToggle();
         _accumulator += Math.Min(delta, 0.25);
@@ -120,7 +131,7 @@ public partial class Main : Node2D
         }
         float alpha = _world.Modal == ModalKind.None ? (float)(_accumulator / TickSeconds) : 1f;
         _view.Render(alpha, (float)delta);
-        _camera.Position = _view.HeroPosition;
+        _camera.Position = (_view.HeroPosition * _gridScale).Round() / _gridScale;
         double scriptMs = (Time.GetTicksUsec() - frameStart) / 1000.0;
 
         _frames++;
@@ -148,6 +159,39 @@ public partial class Main : Node2D
         {
             FinishSmoke();
         }
+        if (_options.Screenshot != null && _frames == _options.ScreenshotFrame)
+        {
+            _captureStage = 1;
+        }
+    }
+
+    /// <summary>
+    /// Снимок для сравнения сеток и проверки читаемости (G2.6): кадр сцены, затем тот же кадр маской силуэтов
+    /// (герой — красный, рядовые — зелёный, элиты — синий). Сим на время съёмки стоит. Картинки — во внутреннем
+    /// разрешении сетки; анализ — `glimmer_sprites readability`.
+    /// </summary>
+    private void Capture()
+    {
+        Image image = GetViewport().GetTexture().GetImage();
+        string prefix = System.IO.Path.GetFullPath(_options.Screenshot!);
+        if (_captureStage == 1)
+        {
+            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(prefix)!);
+            image.SavePng(prefix + ".png");
+            _view.SetMaskMode(true);
+            _captureStage = 2;
+            return;
+        }
+        image.SavePng(prefix + ".mask.png");
+        string info = string.Format(CultureInfo.InvariantCulture,
+            "{{\"grid\": [{0}, {1}], \"frame\": {2}, \"tick\": {3}, \"enemies\": {4}, \"visible_enemies\": {5}, \"seed\": \"{6}\"}}\n",
+            image.GetWidth(), image.GetHeight(), _frames, _world.Tick, _world.Enemies.Count, _view.VisibleEnemies, _options.Seed);
+        using (FileAccess file = FileAccess.Open(prefix + ".json", FileAccess.ModeFlags.Write))
+        {
+            file?.StoreString(info);
+        }
+        GD.Print($"screenshot {prefix}.png + .mask.png: {info.Trim()}");
+        GetTree().Quit(0);
     }
 
     private void HandleToggle()

@@ -24,6 +24,7 @@ public sealed class InstanceLayer
             TransformFormat = MultiMesh.TransformFormatEnum.Transform2D,
             UseColors = true,
             Mesh = ProceduralArt.UnitQuad(),
+            CustomAabb = ProceduralArt.ArenaBounds(),
         };
         Allocate(initialCapacity);
         Node = new MultiMeshInstance2D { Multimesh = _multimesh, Texture = texture, Material = material };

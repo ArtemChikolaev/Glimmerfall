@@ -5,7 +5,8 @@ namespace Glimmerfall.Game;
 
 /// <summary>
 /// Пользовательские аргументы после «--»: <c>Glimmerfall.x86_64 -- --bench-seconds 60</c>.
-/// По умолчанию — спайк орды с автопилотом-кайтером; <c>--scenario run --manual</c> — играбельный акт.
+/// По умолчанию — спайк орды с автопилотом-кайтером; <c>--scenario run --manual</c> — играбельный акт;
+/// <c>--grid 960 --screenshot build/shot</c> — снимок сцены на другой сетке (G2.6).
 /// </summary>
 public sealed class SpikeOptions
 {
@@ -19,6 +20,13 @@ public sealed class SpikeOptions
     public int WarmupSeconds = 5;
     public int SmokeFrames;
     public bool Vsync = true;
+
+    /// <summary>Внутреннее разрешение: 640 (640×360, ADR 0003) или 960 (960×540) — сравнение сеток G2.6.</summary>
+    public int Grid = 640;
+
+    /// <summary>Снимок кадра и маски силуэтов (G2.6): путь без расширения, кадр съёмки.</summary>
+    public string? Screenshot;
+    public int ScreenshotFrame = 600;
 
     /// <summary>Замер закончился — выйти (ПК, CI) или оставить отчёт на экране для скриншота (телефон, Deck в игровом режиме).</summary>
     public bool QuitAfterBench = true;
@@ -59,8 +67,15 @@ public sealed class SpikeOptions
                 case "--warmup-seconds": options.WarmupSeconds = NextInt(); break;
                 case "--smoke-frames": options.SmokeFrames = NextInt(); break;
                 case "--no-vsync": options.Vsync = false; break;
+                case "--grid": options.Grid = NextInt(); break;
+                case "--screenshot": options.Screenshot = Next(); break;
+                case "--screenshot-frame": options.ScreenshotFrame = NextInt(); break;
                 default: throw new ArgumentException($"unknown option {key}");
             }
+        }
+        if (options.Grid is not (640 or 960))
+        {
+            throw new ArgumentException("--grid: 640 или 960");
         }
         if (options.BenchSeconds > 0)
         {

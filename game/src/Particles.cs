@@ -19,8 +19,14 @@ public sealed class Particles
     private readonly float[] _maxLife = new float[Capacity];
     private readonly float[] _size = new float[Capacity];
     private readonly Color[] _color = new Color[Capacity];
-    private readonly Random _random = new();
+    private readonly Random _random;
     private int _count;
+
+    /// <summary>seed — только для сравнимых скриншотов (G2.6); в игре разброс частиц свой на каждый запуск.</summary>
+    public Particles(int? seed = null)
+    {
+        _random = seed is int value ? new Random(value) : new Random();
+    }
 
     public int Count => _count;
 
