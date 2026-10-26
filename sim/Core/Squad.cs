@@ -35,6 +35,8 @@ public sealed class Squad
     /// <summary>Окно связки после ассиста (тики) и слот выпрыгнувшего героя; свап на него в окне — дуэт-приём.</summary>
     public int LinkTicks;
     public int LinkHelper = -1;
+    /// <summary>Сколько ещё тиков действует сила святилища (урон отряда выше).</summary>
+    public int ShrineTicks;
     public int InvulnerableTicks;
     /// <summary>Поворот кольца «Новы» и спирали спайка орды, единицы угла.</summary>
     public int SpinAngle;
@@ -78,6 +80,7 @@ public sealed class Squad
         hasher.Add(AssistCooldown);
         hasher.Add(LinkTicks);
         hasher.Add(LinkHelper);
+        hasher.Add(ShrineTicks);
         hasher.Add(InvulnerableTicks);
         hasher.Add(SpinAngle);
     }

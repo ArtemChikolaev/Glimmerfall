@@ -120,6 +120,58 @@ public class SquadMoveTests
     }
 
     [Fact]
+    public void CleaveHitsTheArcInFrontNearestFirstUpToTheCap()
+    {
+        World world = QuietWorld("cleave-arc");
+        HeroKind lamplighter = world.ActiveHero;
+        Assert.Equal(AttackPattern.Cleave, lamplighter.Pattern);
+        Fix x = world.Squad.X;
+        Fix y = world.Squad.Y;
+        // перед героем (вправо) — больше врагов, чем задевает удар; сзади и вне досягаемости — по одному
+        int[] front = Enumerable.Range(0, lamplighter.Pierce + 2)
+            .Select(k => world.SpawnEnemyForTest(EnemyIds.Brute, x + Fix.FromInt(20 + 4 * k), y + Fix.FromInt(k % 2 == 0 ? 6 : -6)))
+            .ToArray();
+        int behind = world.SpawnEnemyForTest(EnemyIds.Brute, x - Fix.FromInt(30), y);
+        int far = world.SpawnEnemyForTest(EnemyIds.Brute, x + Fix.FromInt(120), y);
+        int full = world.Enemies.Hp[behind];
+        world.Squad.AttackCooldown[world.Squad.Active] = 0;
+        world.Step(default);
+        SimEvent attack = Assert.Single(world.Events, e => e.Type == SimEventType.HeroAttack);
+        Assert.Equal(lamplighter.Pierce, attack.Amount);
+        Assert.Equal(lamplighter.Pierce, front.Count(i => world.Enemies.Hp[i] < full));
+        Assert.True(world.Enemies.Hp[front[0]] < full && world.Enemies.Hp[front[1]] < full, "ближние задеты первыми");
+        Assert.Equal(full, world.Enemies.Hp[behind]);
+        Assert.Equal(full, world.Enemies.Hp[far]);
+    }
+
+    [Fact]
+    public void HeavyCleaveThrowsRankAndFileButNotElites()
+    {
+        World world = QuietWorld("cleave-heavy", new[] { HeroIds.Warden, HeroIds.Lamplighter, HeroIds.Sparkwright });
+        Fix x = world.Squad.X;
+        Fix y = world.Squad.Y;
+        int brute = world.SpawnEnemyForTest(EnemyIds.Brute, x + Fix.FromInt(30), y);
+        int elite = world.SpawnEnemyForTest(EnemyIds.Ravager, x + Fix.FromInt(40), y + Fix.FromInt(14));
+        Fix bruteX = world.Enemies.X[brute];
+        Fix eliteX = world.Enemies.X[elite];
+        world.Enemies.Hp[brute] = 1000;
+        world.Squad.AttackCooldown[world.Squad.Active] = 0;
+        world.Step(default);
+        Assert.Contains(world.Events, e => e.Type == SimEventType.HeroAttack);
+        Assert.True(world.Enemies.X[brute] >= bruteX + world.ActiveHero.CleavePushPx - Fix.FromInt(2), "рядового отбросило");
+        Assert.True(world.Enemies.X[elite] < eliteX + Fix.FromInt(4), "элита стоит");
+    }
+
+    [Fact]
+    public void ArmorReducesDamageButNeverToZero()
+    {
+        HeroKind warden = SpikeContent.CreateHeroKinds()[HeroIds.Warden];
+        Assert.Equal(Rules.Percent(10, 100 - warden.ArmorPercent), Rules.DamageTaken(warden, 10));
+        Assert.Equal(1, Rules.DamageTaken(warden, 1));
+        Assert.Equal(0, Rules.DamageTaken(warden, 0));
+    }
+
+    [Fact]
     public void AssistOpensTheLinkWindowAndItCloses()
     {
         World world = QuietWorld("link-window");
@@ -195,6 +247,7 @@ public class SquadMoveTests
         World world = QuietWorld("duet-steam");
         world.Step(Press(InputButtons.Assist));
         int brute = world.SpawnEnemyForTest(EnemyIds.Brute, world.Squad.X + Fix.FromInt(120), world.Squad.Y);
+        world.Enemies.Hp[brute] = 1000;   // дуэт сильнее громилы — нужен живой, чтобы увидеть отброс
         Fix before = world.Enemies.X[brute];
         int hp = world.Enemies.Hp[brute];
         world.Step(Press(InputButtons.Swap));

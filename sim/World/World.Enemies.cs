@@ -493,6 +493,10 @@ public sealed partial class World
     private void DamageEnemy(int slot, int damage, Fix dirX, Fix dirY, bool crit, int sourceHero)
     {
         EnemyPool e = Enemies;
+        if (sourceHero >= 0 && Squad.ShrineTicks > 0)
+        {
+            damage = Rules.ShrineDamage(damage);
+        }
         e.Hp[slot] -= damage;
         e.HitFlash[slot] = 6;
         Stats.Acts[ActIndex].DamageDealt += damage;

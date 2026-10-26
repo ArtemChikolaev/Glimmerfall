@@ -18,6 +18,8 @@ public sealed class ActStats
     public int Dashes;
     public int Assists;
     public int Duets;
+    public int Shrines;
+    public int Altars;
     public int LevelAtEnd;
     public int PeakEnemies;
 }

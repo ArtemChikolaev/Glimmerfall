@@ -42,6 +42,17 @@ public static class Rules
     public const int FirestormBlasts = 6;
 
     /// <summary>
+    /// Места акта (PRD §4): святилища — постой в круге даёт силу на время; алтари риска — касание будит стража со
+    /// свитой, убитый страж — лишний выбор благословения.
+    /// </summary>
+    public const int ShrinesPerAct = 3;
+    public const int AltarsPerAct = 2;
+    public const int ShrineChannelTicks = 2 * 60;
+    public const int ShrineBuffTicks = 20 * 60;
+    public const int ShrineDamagePercent = 40;
+    public const int AltarEscort = 6;
+
+    /// <summary>
     /// Преследователь встаёт в ChaseStopPx от касания с героем, а бьёт касанием в пределах ContactReachPx — досягаемость
     /// обязана быть больше остановки: иначе одиночный враг стоял вплотную и не наносил урона (находка ревью 2026-10-26).
     /// </summary>
@@ -64,6 +75,14 @@ public static class Rules
     public static readonly Fix FirestormRangePx = Fix.FromInt(240);
     public static readonly Fix FirestormBlastRadiusPx = Fix.FromInt(52);
     public static readonly Fix FirestormSpacingPx = Fix.FromInt(72);
+    public static readonly Fix PlaceRadiusPx = Fix.FromInt(40);
+    public static readonly Fix PlaceKeepOutPx = Fix.FromInt(520);
+    public static readonly Fix PlaceSpacingPx = Fix.FromInt(600);
+    public static readonly Fix AltarGuardianDistancePx = Fix.FromInt(130);
+    public static readonly Fix AltarEscortRadiusPx = Fix.FromInt(170);
+
+    /// <summary>Урон героя, пока действует сила святилища.</summary>
+    public static int ShrineDamage(int damage) => Percent(damage, 100 + ShrineDamagePercent);
 
     /// <summary>Урон приёма ассиста — от урона атаки героя с «Мощью» и метой.</summary>
     public static int AssistDamage(HeroKind kind, int mightLevel, in MetaLoadout meta) =>
@@ -121,7 +140,23 @@ public static class Rules
     public static int ProjectileCount(HeroKind kind, int volleyLevel) =>
         kind.ProjectileCount + (kind.Pattern == AttackPattern.Nova ? 2 * volleyLevel : volleyLevel);
 
+    /// <summary>Урон по герою после брони; не меньше единицы, если урон был.</summary>
+    public static int DamageTaken(HeroKind kind, int amount)
+    {
+        int taken = Percent(amount, 100 - kind.ArmorPercent);
+        return taken < 1 && amount > 0 ? 1 : taken;
+    }
+
+    /// <summary>Пробитие снаряда; у удара дугой — сколько врагов задевает один удар.</summary>
     public static int Pierce(HeroKind kind, int pierceLevel) => kind.Pierce + pierceLevel;
+
+    /// <summary>Полуугол дуги удара в ближнем бою: «Залп» расширяет замах на 10° за уровень, не шире 120° в сторону.</summary>
+    public static int CleaveArc(HeroKind kind, int volleyLevel)
+    {
+        int arc = kind.SpreadAngle + FixMath.Degrees(10) * volleyLevel;
+        int max = FixMath.Degrees(120);
+        return arc < max ? arc : max;
+    }
 
     public static Fix MoveSpeed(HeroKind kind, int swiftLevel, in MetaLoadout meta) =>
         kind.SpeedPxPerTick * (100 + 8 * swiftLevel + 3 * meta.Speed) / 100;

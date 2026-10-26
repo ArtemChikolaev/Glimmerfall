@@ -28,6 +28,12 @@ public enum SimEventType : byte
     Duet = 13,
     /// <summary>Удар дуэта в точке (X, Y): молния ледяной грозы (Amount 0) или взрыв огненного шторма (Amount — радиус).</summary>
     DuetStrike = 14,
+    /// <summary>Святилище отдало силу: Kind — PlaceKind, Amount — тики усиления.</summary>
+    PlaceUsed = 15,
+    /// <summary>Алтарь риска пробуждён: Kind — PlaceKind, Dir — куда встаёт страж.</summary>
+    PlaceAwake = 16,
+    /// <summary>Страж алтаря убит — дар: лишний выбор благословения.</summary>
+    PlaceReward = 17,
 }
 
 /// <summary>

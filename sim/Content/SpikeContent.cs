@@ -79,14 +79,18 @@ public static class SpikeContent
         new HeroKind
         {
             Id = HeroIds.Lamplighter, Name = "lamplighter", MaxHp = 100, SpeedPxPerTick = Fix.PerSecond(92), RadiusPx = Fix.FromInt(8),
-            Element = Element.Fire, Assist = AssistKind.FireRing, Pattern = AttackPattern.Bolt, AttackIntervalTicks = 34, ProjectileCount = 1, SpreadAngle = 0, Damage = 11,
-            ProjectileSpeedPxPerTick = Fix.PerSecond(320), RangePx = Fix.FromInt(270), Pierce = 1, ProjectileRadiusPx = Fix.FromInt(4),
+            // палач с пылающим фальшионом: быстрые узкие удары дугой
+            Element = Element.Fire, Assist = AssistKind.FireRing, Pattern = AttackPattern.Cleave, AttackIntervalTicks = 30, ProjectileCount = 1,
+            SpreadAngle = FixMath.Degrees(55), Damage = 14, ProjectileSpeedPxPerTick = Fix.PerSecond(320), RangePx = Fix.FromInt(48), Pierce = 4,
+            ProjectileRadiusPx = Fix.FromInt(4), ArmorPercent = 15,
         },
         new HeroKind
         {
+            // громила с секирой: медленный широкий удар, отбрасывает рядовых
             Id = HeroIds.Warden, Name = "warden", MaxHp = 140, SpeedPxPerTick = Fix.PerSecond(84), RadiusPx = Fix.FromInt(9),
-            Element = Element.Frost, Assist = AssistKind.ShieldBash, Pattern = AttackPattern.Fan, AttackIntervalTicks = 46, ProjectileCount = 3, SpreadAngle = FixMath.Degrees(12), Damage = 8,
-            ProjectileSpeedPxPerTick = Fix.PerSecond(260), RangePx = Fix.FromInt(210), Pierce = 2, ProjectileRadiusPx = Fix.FromInt(4),
+            Element = Element.Frost, Assist = AssistKind.ShieldBash, Pattern = AttackPattern.Cleave, AttackIntervalTicks = 52, ProjectileCount = 1,
+            SpreadAngle = FixMath.Degrees(75), Damage = 18, ProjectileSpeedPxPerTick = Fix.PerSecond(260), RangePx = Fix.FromInt(60), Pierce = 7,
+            ProjectileRadiusPx = Fix.FromInt(4), CleavePushPx = Fix.FromInt(14), ArmorPercent = 30,
         },
         new HeroKind
         {

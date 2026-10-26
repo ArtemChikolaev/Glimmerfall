@@ -62,6 +62,13 @@ public sealed class KiterPolicy : IBotPolicy
     private static readonly int OrbitAngle = FixMath.Degrees(35);
     private const int HeadingStep = FixMath.FullTurn / 64;
     private const int LinkReactionTicks = 30;
+    /// <summary>Вес толпы вплотную (рядовой 1, громила 2, элита 4), выше которого ближний бой отходит, а не рубит.</summary>
+    private const int MeleeCrowdLimit = 5;
+    /// <summary>За сколько тиков до готовности удара ближний бой шагает к врагу.</summary>
+    private const int MeleeStepInTicks = 10;
+    /// <summary>Святилище — только при толпе вплотную легче этого веса и в пределах этой дальности.</summary>
+    private const int ShrineCrowdLimit = 4;
+    private static readonly long ShrineSearchRadius = Fix.FromInt(900).Raw;
 
     public string Name => "kiter";
 
@@ -93,6 +100,14 @@ public sealed class KiterPolicy : IBotPolicy
         long crowdX = 0;
         long crowdY = 0;
         int danger = 0;
+        // ближний бой (удар дугой) воюет у края толпы: подходит на досягаемость, пока вокруг не густо
+        bool melee = world.ActiveHero.Pattern == AttackPattern.Cleave;
+        long nearest = long.MaxValue;
+        long nearestX = 0;
+        long nearestY = 0;
+        EnemyKind? bossKind = null;
+        long bossX = 0;
+        long bossY = 0;
         for (int i = 0; i < e.HighWater; i++)
         {
             if (!e.Alive[i])
@@ -114,7 +129,9 @@ public sealed class KiterPolicy : IBotPolicy
             }
             if (i == boss && engage)
             {
-                EngageBoss(world, kind, dx, dy, ref fx, ref fy);
+                bossKind = kind;
+                bossX = dx;
+                bossY = dy;
                 continue;
             }
             if (kind.Behavior == EnemyBehavior.Charger && e.State[i] != EnemyState.Normal)
@@ -136,6 +153,12 @@ public sealed class KiterPolicy : IBotPolicy
                 continue;
             }
             long d = (long)FixMath.ISqrt((ulong)d2);
+            if (d < nearest)
+            {
+                nearest = d;
+                nearestX = dx;
+                nearestY = dy;
+            }
             int weight = kind.Elite ? 4 : kind.Id == EnemyIds.Brute ? 2 : 1;
             long proximity = (DangerRadius - d) * weight;
             int angle = FixMath.Atan2(dy, dx);
@@ -161,12 +184,26 @@ public sealed class KiterPolicy : IBotPolicy
             }
         }
 
+        // удар-и-отход: к врагу — только когда удар готов, между ударами — обычное кайтование
+        // к боссу ближний бой идёт, только пока вокруг не слишком густо: иначе орда смыкается вокруг, пока он рубит
+        // босса; порог вдвое выше, чем для рядовых, — иначе во втором акте, где толпа есть всегда, босс не умирает
+        if (bossKind != null && (!melee || danger < 2 * MeleeCrowdLimit))
+        {
+            EngageBoss(world, bossKind, bossX, bossY, ref fx, ref fy);
+        }
+        bool brawl = melee && s.AttackCooldown[active] <= MeleeStepInTicks && danger < MeleeCrowdLimit && hpPercent > 40 && !urgent;
         if (crowdX != 0 || crowdY != 0)
         {
             int away = FixMath.Atan2(-crowdY, -crowdX) + OrbitAngle;
-            int strength = danger > 0 ? 3 : 2;
+            int strength = brawl ? 1 : danger > 0 ? 3 : 2;
             fx += FixMath.Cos(away).Raw * strength;
             fy += FixMath.Sin(away).Raw * strength;
+        }
+        if (brawl && nearest != long.MaxValue && nearest > world.ActiveHero.RangePx.Raw * 8 / 10)
+        {
+            int toward = FixMath.Atan2(nearestY, nearestX);
+            fx += FixMath.Cos(toward).Raw * 3;
+            fy += FixMath.Sin(toward).Raw * 3;
         }
 
         int gem = NearestGem(world, hx, hy);
@@ -178,6 +215,25 @@ public sealed class KiterPolicy : IBotPolicy
             int pull = danger > 2 ? 1 : 2;
             fx += FixMath.Cos(toward).Raw * pull;
             fy += FixMath.Sin(toward).Raw * pull;
+        }
+
+        // святилище: пока вокруг не густо и босса нет — к ближнему нетронутому святилищу и стоять в его круге
+        int shrine = NearestDormantShrine(world, hx, hy);
+        if (shrine >= 0 && danger < ShrineCrowdLimit && boss < 0 && !urgent)
+        {
+            long sx = world.Places.X[shrine].Raw - hx;
+            long sy = world.Places.Y[shrine].Raw - hy;
+            if (sx * sx + sy * sy <= Rules.PlaceRadiusPx.Raw * Rules.PlaceRadiusPx.Raw / 3)
+            {
+                fx = 0;
+                fy = 0;
+            }
+            else
+            {
+                int toward = FixMath.Atan2(sy, sx);
+                fx += FixMath.Cos(toward).Raw * 4;
+                fy += FixMath.Sin(toward).Raw * 4;
+            }
         }
 
         long max = Fix.FromInt(SimConstants.ArenaSize).Raw;
@@ -225,13 +281,16 @@ public sealed class KiterPolicy : IBotPolicy
 
     /// <summary>
     /// Босс жив и не замахивается: держать дистанцию ~75% дальности атаки героя, но не ближе круга удара + 20 px —
-    /// автоатака бьёт босса приоритетно, а бегство от него затягивает акт до ярости.
+    /// автоатака бьёт босса приоритетно, а бегство от него затягивает акт до ярости. Ближний бой подходит вплотную
+    /// до края босса: от удара его уводит телеграф (замах), а не дистанция.
     /// </summary>
     private static void EngageBoss(World world, EnemyKind boss, long dx, long dy, ref long fx, ref long fy)
     {
         long d = (long)FixMath.ISqrt((ulong)(dx * dx + dy * dy));
-        long desired = world.ActiveHero.RangePx.Raw * 75 / 100;
-        long minimum = (boss.SlamRadiusPx + Fix.FromInt(20)).Raw;
+        HeroKind hero = world.ActiveHero;
+        bool melee = hero.Pattern == AttackPattern.Cleave;
+        long desired = melee ? (hero.RangePx + boss.RadiusPx).Raw * 75 / 100 : hero.RangePx.Raw * 75 / 100;
+        long minimum = melee ? boss.RadiusPx.Raw : (boss.SlamRadiusPx + Fix.FromInt(20)).Raw;
         int angle = FixMath.Atan2(dy, dx);
         if (d > desired)
         {
@@ -282,6 +341,30 @@ public sealed class KiterPolicy : IBotPolicy
         fx += -dirY * sign * 6;
         fy += dirX * sign * 6;
         return true;
+    }
+
+    /// <summary>Ближнее нетронутое святилище в пределах поиска или −1; равные — меньший индекс.</summary>
+    private static int NearestDormantShrine(World world, long hx, long hy)
+    {
+        PlacePool places = world.Places;
+        long best = ShrineSearchRadius * ShrineSearchRadius;
+        int found = -1;
+        for (int i = 0; i < places.Count; i++)
+        {
+            if (places.Kind[i] != PlaceKind.Shrine || places.State[i] != PlaceState.Dormant)
+            {
+                continue;
+            }
+            long dx = places.X[i].Raw - hx;
+            long dy = places.Y[i].Raw - hy;
+            long d2 = dx * dx + dy * dy;
+            if (d2 < best)
+            {
+                best = d2;
+                found = i;
+            }
+        }
+        return found;
     }
 
     private static int NearestGem(World world, long hx, long hy)

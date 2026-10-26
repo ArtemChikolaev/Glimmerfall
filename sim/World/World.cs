@@ -38,8 +38,8 @@ public sealed partial class World
 
     /// <summary>Версия раскладки хеша состояния; меняется вместе с полями в <see cref="ComputeDigest"/>.
     /// 2 — радиусы снарядов и поколения всех слотов пулов (ревью 2026-10-26); 3 — откат ассиста отряда;
-    /// 4 — окно связки и герой, открывший его.</summary>
-    public const int DigestLayoutVersion = 4;
+    /// 4 — окно связки и герой, открывший его; 5 — места акта и усиление святилища.</summary>
+    public const int DigestLayoutVersion = 5;
 
     public readonly SimConfig Config;
     public readonly ulong Seed;
@@ -49,6 +49,7 @@ public sealed partial class World
     public readonly ProjectilePool Projectiles = new(ProjectileCapacity);
     public readonly ShotPool Shots = new(ShotCapacity);
     public readonly GemPool Gems = new(GemCapacity);
+    public readonly PlacePool Places = new();
     public readonly SpatialGrid Grid = new(EnemyCapacity);
     public readonly RunStats Stats;
     public readonly int[] BlessingLevels = new int[Blessings.Count];
@@ -110,7 +111,7 @@ public sealed partial class World
     public bool IsBossAlive => Enemies.IsLive(BossHandle);
 
     /// <summary>
-    /// Один шаг. Порядок систем тика: предыдущие позиции → отряд (ввод, рывок, свап) → враги (ИИ, телеграфы, выстрелы) →
+    /// Один шаг. Порядок систем тика: предыдущие позиции → отряд (ввод, рывок, свап) → места акта → враги (ИИ, телеграфы, выстрелы) →
     /// сетка → расталкивание → сетка → контакты с отрядом → снаряды отряда → снаряды врагов → атака героя → опыт →
     /// директор спавна → конец тика (смерти, освобождение слотов, отложенный спавн, акт, модалки).
     /// </summary>
@@ -134,6 +135,7 @@ public sealed partial class World
         ActTick++;
         CapturePrevious();
         UpdateSquad(input);
+        UpdatePlaces();
         UpdateEnemies();
         Grid.Build(Enemies);
         SeparateEnemies();
@@ -207,6 +209,7 @@ public sealed partial class World
         Projectiles.AddTo(ref h);
         Shots.AddTo(ref h);
         Gems.AddTo(ref h);
+        Places.AddTo(ref h);
         return h.Finish();
     }
 }

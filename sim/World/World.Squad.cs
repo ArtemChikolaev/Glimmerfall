@@ -15,6 +15,13 @@ public sealed partial class World
     /// <summary>Слоты врагов, уже задетых приёмом (цепная молния, ледяная гроза), — рабочий буфер, не состояние.</summary>
     private readonly List<int> _chainHits = new(Rules.IceStormTargets);
 
+    /// <summary>Кандидаты удара дугой и квадраты их расстояний — рабочие буферы, не состояние.</summary>
+    private readonly List<int> _cleaveHits = new(32);
+    private readonly List<long> _cleaveDistance = new(32);
+
+    /// <summary>Запас поиска цели ближнего боя на радиус крупных врагов (босс — 26 px).</summary>
+    private static readonly Fix MeleeTargetSlackPx = Fix.FromInt(28);
+
     private void UpdateSquad(in InputFrame input)
     {
         Squad s = Squad;
@@ -328,6 +335,7 @@ public sealed partial class World
         }
         Squad s = Squad;
         int a = s.Active;
+        amount = Rules.DamageTaken(ActiveHero, amount);
         s.Hp[a] -= amount;
         Stats.Acts[ActIndex].DamageTaken += amount;
         Stats.LastDamageKind = sourceKind;
@@ -368,7 +376,9 @@ public sealed partial class World
             EmitBenchProjectiles(kind);
             return;
         }
-        int target = FindTarget(kind.RangePx);
+        bool melee = kind.Pattern == AttackPattern.Cleave;
+        // ближний бой ищет цель с запасом на радиус крупных врагов: их край в досягаемости раньше центра
+        int target = FindTarget(melee ? kind.RangePx + MeleeTargetSlackPx : kind.RangePx);
         if (target < 0)
         {
             return;
@@ -380,6 +390,9 @@ public sealed partial class World
         int baseAngle = FixMath.Atan2(Enemies.Y[target].Raw - s.Y.Raw, Enemies.X[target].Raw - s.X.Raw);
         switch (kind.Pattern)
         {
+            case AttackPattern.Cleave:
+                count = Cleave(kind, baseAngle, damage, pierce, Rules.CleaveArc(kind, BlessingLevels[(int)Blessing.Volley]));
+                break;
             case AttackPattern.Bolt:
             case AttackPattern.Fan:
                 int step = kind.Pattern == AttackPattern.Fan ? kind.SpreadAngle : FixMath.Degrees(6);
@@ -399,6 +412,74 @@ public sealed partial class World
         }
         Emit(SimEventType.HeroAttack, s.X, s.Y, kind.Id, count, FixMath.Cos(baseAngle), FixMath.Sin(baseAngle));
         s.AttackCooldown[a] = Rules.AttackInterval(kind, BlessingLevels[(int)Blessing.Haste]);
+    }
+
+    /// <summary>
+    /// Удар дугой (ближний бой): враги в секторе ±arc от направления на цель и в досягаемости с их радиусом;
+    /// не больше targets — ближние первыми, равные — меньший слот. Крит — тем же потоком, что у снарядов.
+    /// Тяжёлый удар (CleavePushPx) отбрасывает рядовых. Возвращает число задетых.
+    /// </summary>
+    private int Cleave(HeroKind kind, int angle, int damage, int targets, int arc)
+    {
+        EnemyPool e = Enemies;
+        Squad s = Squad;
+        long cos = FixMath.Cos(angle).Raw;
+        long sin = FixMath.Sin(angle).Raw;
+        long cosArc = FixMath.Cos(arc).Raw;
+        _cleaveHits.Clear();
+        _cleaveDistance.Clear();
+        for (int i = 0; i < e.HighWater; i++)
+        {
+            if (!e.Alive[i])
+            {
+                continue;
+            }
+            long dx = e.X[i].Raw - s.X.Raw;
+            long dy = e.Y[i].Raw - s.Y.Raw;
+            long reach = (kind.RangePx + e.Radius[i]).Raw;
+            long d2 = dx * dx + dy * dy;
+            if (d2 > reach * reach)
+            {
+                continue;
+            }
+            long distance = (long)FixMath.ISqrt((ulong)d2);
+            long along = (dx * cos + dy * sin) >> Fix.FractionBits;
+            // в секторе — проекция на направление удара не меньше distance·cos(arc); вплотную — всегда
+            if (distance > e.Radius[i].Raw && along * Fix.OneRaw < distance * cosArc)
+            {
+                continue;
+            }
+            _cleaveHits.Add(i);
+            _cleaveDistance.Add(d2);
+        }
+        int hits = 0;
+        while (hits < targets && _cleaveHits.Count > 0)
+        {
+            int best = 0;
+            for (int k = 1; k < _cleaveHits.Count; k++)
+            {
+                if (_cleaveDistance[k] < _cleaveDistance[best])
+                {
+                    best = k;
+                }
+            }
+            int slot = _cleaveHits[best];
+            _cleaveHits.RemoveAt(best);
+            _cleaveDistance.RemoveAt(best);
+            long dx = e.X[slot].Raw - s.X.Raw;
+            long dy = e.Y[slot].Raw - s.Y.Raw;
+            bool crit = Rng[RngStream.Combat].Chance(Fix.Ratio(Rules.CritPercent, 100));
+            DamageEnemy(slot, crit ? damage * 2 : damage, Fix.FromRaw(dx), Fix.FromRaw(dy), crit, kind.Id);
+            hits++;
+            if (kind.CleavePushPx.Raw > 0 && e.Alive[slot] && !_heavyKind[e.Kind[slot]])
+            {
+                int away = FixMath.Atan2(dy, dx);
+                Fix radius = e.Radius[slot];
+                e.X[slot] = Fix.Clamp(e.X[slot] + FixMath.Cos(away) * kind.CleavePushPx, radius, ArenaMax - radius);
+                e.Y[slot] = Fix.Clamp(e.Y[slot] + FixMath.Sin(away) * kind.CleavePushPx, radius, ArenaMax - radius);
+            }
+        }
+        return hits;
     }
 
     private void FireProjectile(HeroKind kind, int angle, int life, int damage, int pierce)

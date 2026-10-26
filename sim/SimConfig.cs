@@ -323,6 +323,8 @@ public sealed class SimConfig
             h.Add(k.RangePx.Raw);
             h.Add(k.Pierce);
             h.Add(k.ProjectileRadiusPx.Raw);
+            h.Add(k.CleavePushPx.Raw);
+            h.Add(k.ArmorPercent);
         }
         return h.Finish();
     }

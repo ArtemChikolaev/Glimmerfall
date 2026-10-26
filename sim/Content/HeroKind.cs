@@ -10,6 +10,11 @@ public enum AttackPattern : byte
     Fan = 1,
     /// <summary>Кольцо снарядов вокруг героя, если враг в радиусе.</summary>
     Nova = 2,
+    /// <summary>
+    /// Ближний бой: удар дугой по всем врагам в секторе перед героем (ADR 0003, уточнение 2026-10-26). RangePx —
+    /// досягаемость, SpreadAngle — полуугол дуги, Pierce — сколько врагов задевает один удар, CleavePushPx — отброс.
+    /// </summary>
+    Cleave = 3,
 }
 
 /// <summary>Фирменный приём ассиста (PRD §5): резервный герой выпрыгивает, бьёт и уходит.</summary>
@@ -61,6 +66,10 @@ public sealed class HeroKind
     public Fix RangePx;
     public int Pierce;
     public Fix ProjectileRadiusPx;
+    /// <summary>Отброс рядовых ударом дугой (тяжёлый удар); ноль — без отброса.</summary>
+    public Fix CleavePushPx;
+    /// <summary>Броня: на сколько процентов меньше урона получает герой. Ближнему бою — плата за жизнь вплотную к орде.</summary>
+    public int ArmorPercent;
 
     public HeroKind Clone() => (HeroKind)MemberwiseClone();
 }

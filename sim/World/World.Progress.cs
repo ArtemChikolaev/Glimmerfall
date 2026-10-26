@@ -16,6 +16,8 @@ public sealed partial class World
         public Fix X;
         public Fix Y;
         public bool Boss;
+        /// <summary>Место, чей это страж (алтарь риска), или −1.</summary>
+        public int Place;
     }
 
     /// <summary>Отложенный спавн: враги появляются в конце тика (скилл sim-invariants, правило 2).</summary>
@@ -47,6 +49,7 @@ public sealed partial class World
         Squad.Y = Fix.FromInt(SimConstants.ArenaSize / 2);
         Squad.PrevX = Squad.X;
         Squad.PrevY = Squad.Y;
+        LayoutPlaces();
         ActStats stats = Stats.Acts[index];
         stats.Reached = true;
         stats.StartTick = Tick;
@@ -138,15 +141,19 @@ public sealed partial class World
         }
     }
 
-    /// <summary>Вид рядового врага по расписанию акта: в первом акте виды открываются по времени, дальше — все сразу.</summary>
+    /// <summary>
+    /// Вид рядового врага по расписанию акта: в первом акте виды открываются по времени, дальше — все сразу.
+    /// Стрелки с 30-й секунды и тараны с минуты заставляют двигаться с первой минуты (столп «угроза»): рядовых
+    /// у ног герой ближнего боя рубит и стоя — стоять нельзя из-за тех, до кого он не дотягивается.
+    /// </summary>
     private int PickRegularKind()
     {
         int seconds = ActIndex > 0 ? int.MaxValue : ActTick / SimConstants.TicksPerSecond;
         int shambler = 10;
-        int runner = seconds >= 40 ? 6 : 0;
-        int spitter = seconds >= 75 ? 3 : 0;
-        int charger = seconds >= 150 ? 3 : 0;
-        int brute = seconds >= 200 ? 2 : 0;
+        int runner = seconds >= 45 ? 6 : 0;
+        int spitter = seconds >= 30 ? 3 : 0;
+        int charger = seconds >= 60 ? 3 : 0;
+        int brute = seconds >= 150 ? 2 : 0;
         int roll = Rng[RngStream.Spawn].NextInt(shambler + runner + spitter + charger + brute);
         if ((roll -= shambler) < 0)
         {
@@ -176,6 +183,9 @@ public sealed partial class World
         QueueSpawnAt(kind, Squad.X + FixMath.Cos(angle) * radius, Squad.Y + FixMath.Sin(angle) * radius, boss);
     }
 
+    /// <summary>Только для тестов: добить врага в слоте (смерть пройдёт концом следующего тика, как в бою).</summary>
+    internal void KillEnemyForTest(int slot) => DamageEnemy(slot, Enemies.Hp[slot], Fix.Zero, Fix.Zero, false, -1);
+
     /// <summary>Только для тестов: враг в заданной точке сразу, мимо директора.</summary>
     internal int SpawnEnemyForTest(int kind, Fix x, Fix y)
     {
@@ -183,7 +193,7 @@ public sealed partial class World
         return Enemies.Spawn(kind, x, y, k.RadiusPx, Rules.EnemyHp(k, Config.Tier, ActIndex), 0);
     }
 
-    private void QueueSpawnAt(int kind, Fix x, Fix y, bool boss)
+    private void QueueSpawnAt(int kind, Fix x, Fix y, bool boss, int place = -1)
     {
         Fix margin = Fix.FromInt(24);
         _spawnQueue.Add(new PendingSpawn
@@ -192,6 +202,7 @@ public sealed partial class World
             X = Fix.Clamp(x, margin, ArenaMax - margin),
             Y = Fix.Clamp(y, margin, ArenaMax - margin),
             Boss = boss,
+            Place = place,
         });
     }
 
@@ -250,6 +261,10 @@ public sealed partial class World
             if (spawn.Boss && slot >= 0)
             {
                 BossHandle = e.Handle(slot);
+            }
+            if (spawn.Place >= 0)
+            {
+                GuardianSpawned(spawn.Place, slot);
             }
         }
         _spawnQueue.Clear();
